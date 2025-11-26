@@ -1,41 +1,110 @@
-# Prerequisites
-*.d
+# =============================
+# C++ / Build Artifacts
+# =============================
 
-# Compiled Object files
-*.slo
-*.lo
+# Object files
 *.o
 *.obj
+*.lo
+*.slo
+*.d
 
-# Precompiled Headers
-*.gch
+# Precompiled headers
 *.pch
+*.gch
 
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
+# Static/Shared libs
+*.a
+*.lib
+*.la
+*.lai
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
 
 # Executables
 *.exe
 *.out
 *.app
 
-# debug information files
+# Debug info
+*.pdb
 *.dwo
+*.ilk
+
+# =============================
+# CMake
+# =============================
+
+# Build directories
+/build/
+build/
+build-*/
+out/
+
+# CMake cache
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+
+# Ignore cmake-generated files in source
+*.cmake
+
+# =============================
+# IDEs / Editors
+# =============================
+
+# Visual Studio
+*.sln
+*.vcxproj*
+*.vs
+.vscode/
+.vscode/*
+external/SDL/**/.vs/
+
+# Visual Studio Workspace
+/.vs/
+
+# CLion / JetBrains
+.idea/
+cmake-build-*/
+
+# VSCode
+.vscode/
+
+# =============================
+# OS-Specific
+# =============================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*.swp
+
+# =============================
+# Project Specific
+# =============================
+
+# External libraries build output
+external/*/build/
+external/*/bin/
+external/*/lib/
+
+# OpenGL shader cache 
+*.spv
+*.shadercache
+
+# Generated frame exports / mask output
+masks/
+frames/
+export/
