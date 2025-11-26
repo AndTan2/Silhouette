@@ -1,14 +1,9 @@
 #pragma once
 #include "Input.hpp"
+#include "Camera.hpp"
 
 #include"stb_image.h"
 
-#include <iostream>
-#include <GLFW/glfw3.h>
-#if defined(_WIN32)
-#include<Windows.h>
-#endif
-#include<gl/GL.h>
 #include <chrono>
 #include <thread>
 
@@ -35,15 +30,8 @@ private:
 	int imageWidth = 0;
 	int imageHeight = 0;
 
-	float zoom = 1.0f;
-	float panX = 0.0f;
-	float panY = 0.0f;
-	float interpolatedZoom = 1.0f;
-	float interpolatedPanX = 0.0f;
-	float interpolatedPanY = 0.0f;
-	bool panning = false;
-
 	Input input;
+	Camera camera;
 
 	GLFWcursor* handCursor;
 

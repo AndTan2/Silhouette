@@ -19,7 +19,8 @@ add_executable(Silhouette
     src/main.cpp
     src/App.cpp
     src/ImageLoader.cpp
-    src/Input.cpp)
+    src/Input.cpp 
+    src/Camera.cpp)
 
 target_include_directories(Silhouette PRIVATE
     external/stb

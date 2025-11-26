@@ -101,87 +101,27 @@ void App::run()
 		if (!input.spaceDown())	glfwSetCursor(window, nullptr);
 
 		bool wantPan = input.leftClickDown() && input.spaceDown();
+		camera.setPanning(wantPan);
 
-		if (wantPan && !panning)		panning = true;
-		else if (!wantPan && panning)	panning = false;
-			
-
-		if (panning)
+		if (wantPan)
 		{
-			double dx = input.deltaX();
-			double dy = input.deltaY();
-
-			panX += static_cast<float>(dx);
-			panY -= static_cast<float>(dy);
+			camera.addPanDelta((float)input.deltaX(), (float)input.deltaY());
 		}
+			
 
 		if (input.scrollY() != 0.0f)
 		{
-			float oldZoom = zoom;
+			double mx, my;
+			glfwGetCursorPos(window, &mx, &my);
 
-			float factor = 1.0f + 0.1f * static_cast<float>(input.scrollY());
-			if (factor > 0.0f)
-			{
-				zoom *= factor;
-				if (zoom < 0.1f) zoom = 0.1f;
-				if (zoom > 20.0f) zoom = 20.0f;
+			float mouseX = (float)mx;
+			float mouseY = (float)(height - my);
 
-				float scale = zoom / oldZoom; 
-
-				
-				double mx, my;
-				glfwGetCursorPos(window, &mx, &my);
-
-				
-				float mouseX = static_cast<float>(mx);
-				float mouseY = static_cast<float>(height - my);
-
-				float cx = 0.5f * width;   
-				float cy = 0.5f * height;
-
-				
-				float vx = mouseX - cx - panX;
-				float vy = mouseY - cy - panY;
-
-				
-				panX += (1.0f - scale) * vx;
-				panY += (1.0f - scale) * vy;
-				
-				if (input.scrollY() < 0.0f)
-				{
-					float zoomFullView = 2.0f;
-
-					float zNorm = zoomFullView / zoom;
-					if (zNorm < 0.0f) zNorm = 0.0f;
-					if (zNorm > 1.0f) zNorm = 1.0f;
-
-					float k = 2.0f;
-					float curve = std::pow(zNorm, k);
-
-					float maxRecenterStrength = 0.20f;
-					float recenterStrength = maxRecenterStrength * curve;
-
-					panX *= (1.0f - recenterStrength);
-					panY *= (1.0f - recenterStrength);
-				}
-			}
+			camera.onScroll((float)input.scrollY(), mouseX, mouseY, width, height);
 		}
 
-		float k = 50.0f;
-		float alpha = 1.0f - std::exp(-k * (float)dt);
-
-		interpolatedZoom += (zoom - interpolatedZoom) * alpha;
-
-		if (panning)
-		{
-			interpolatedPanX = panX;
-			interpolatedPanY = panY;
-		}
-		else
-		{
-			interpolatedPanX += (panX - interpolatedPanX) * alpha;
-			interpolatedPanY += (panY - interpolatedPanY) * alpha;
-		}
+		camera.beginFrame(dt);
+		
 
 		if (imageTexture != 0)
 		{
@@ -193,20 +133,8 @@ void App::run()
 			glLoadIdentity();
 			glBindTexture(GL_TEXTURE_2D, imageTexture);
 
-			float aspectImage = (float)imageWidth / (float)imageHeight;
-			float baseHeight = (float)height / 2;
-			float baseWidth = baseHeight * aspectImage;
-
-			float drawWidth = baseWidth * interpolatedZoom;
-			float drawHeight = baseHeight * interpolatedZoom;
-
-			float centerX = 0.5f * width + interpolatedPanX;
-			float centerY = 0.5f * height + interpolatedPanY;
-
-			float x0 = centerX - drawWidth * 0.5f;
-			float y0 = centerY - drawHeight * 0.5f;
-			float x1 = centerX + drawWidth * 0.5f;
-			float y1 = centerY + drawHeight * 0.5f;
+			float x0, x1, y0, y1;
+			camera.computeImageRect(width, height, imageWidth, imageHeight, x0, x1, y0, y1);
 
 			glBegin(GL_QUADS);
 			glTexCoord2f(0.0f, 0.0f); glVertex2f(x0, y0);
