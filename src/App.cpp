@@ -31,7 +31,7 @@ bool App::init()
 		return false;
 	}
 
-	int cw, ch, channels;
+	/*int cw, ch, channels;
 	unsigned char* pixels = stbi_load("assets/open_palm_cursor.png", &cw, &ch, &channels, 4);
 	if (!pixels) {
 		std::cerr << "Failed to load cursor image\n";
@@ -53,6 +53,26 @@ bool App::init()
 		}
 	}
 
+	pixels = stbi_load("assets/closed_palm_cursor.png", &cw, &ch, &channels, 4);
+	if (!pixels) {
+		std::cerr << "Failed to load cursor image\n";
+	}
+	else {
+		GLFWimage img;
+		img.width = cw;
+		img.height = ch;
+		img.pixels = pixels;
+
+		int hotX = cw / 2;
+		int hotY = ch / 2;
+
+		closedHandCursor = glfwCreateCursor(&img, hotX, hotY);
+		stbi_image_free(pixels);
+
+		if (!closedHandCursor) {
+			std::cerr << "Failed to create GLFW cursor from image\n";
+		}
+	}*/
 
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(0);
@@ -62,12 +82,21 @@ bool App::init()
 	g_appInstance = this;
 	glfwSetScrollCallback(window, GLFW_ScrollCallback);
 
-
-	if (!loadTestImage("assets/1r0uqk76pi1g1.png"))
+	if (!vp.open("assets/test.mp4"))
 	{
-		std::cerr << "Could not load test image.\n";
-		return false;
+		std::cerr << "Failed to open video.\n";
 	}
+	else
+	{
+		if (vp.decodeOneFrame())
+		{
+			std::cout << "RGBA buffer info:\n";
+			std::cout << "  width: " << vp.width()
+				<< " height: " << vp.height() << "\n";
+			std::cout << "  stride: " << vp.rgbaStride() << " bytes\n";
+		}
+	}
+
 	return true;
 }
 
@@ -75,7 +104,7 @@ void App::run()
 {
 	std::cout << "[App::run]  entering main loop...\n";
 	double lastTime = glfwGetTime();
-
+	double videoFrameTimer = 0.0;
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -90,14 +119,14 @@ void App::run()
 		double now = glfwGetTime();
 		double dt = now - lastTime;
 		lastTime = now;
-
-
+		
 		input.beginFrame();
 
 		glfwPollEvents();
 		input.updateFromGlfw(window);
 
-		if(input.spaceDown())	glfwSetCursor(window, openHandCursor);
+		if(input.spaceDown() && !input.leftClickDown())	glfwSetCursor(window, openHandCursor);
+		if (input.spaceDown() && input.leftClickDown())	glfwSetCursor(window, closedHandCursor);
 		if (!input.spaceDown())	glfwSetCursor(window, nullptr);
 
 		bool wantPan = input.leftClickDown() && input.spaceDown();
@@ -107,6 +136,7 @@ void App::run()
 		{
 			camera.addPanDelta((float)input.deltaX(), (float)input.deltaY());
 		}
+		
 			
 
 		if (input.scrollY() != 0.0f)
@@ -121,9 +151,56 @@ void App::run()
 		}
 
 		camera.beginFrame(dt);
-		
 
-		if (imageTexture != 0)
+		if (input.kPressed()) {
+			playState = !playState;
+		}
+
+		double curTime = vp.currentTimeSeconds();
+
+		if (input.leftPressed())
+		{
+			double target = curTime - 1.0;
+			if (vp.seekSeconds(target))
+			{
+				videoFrameTimer = 0.0;
+				std::cout << "Seeked left to ~" << target << " sec\n";
+			}
+		}
+
+		if (input.rightPressed())
+		{
+			double target = curTime + 1.0;
+			if (vp.seekSeconds(target))
+			{
+				videoFrameTimer = 0.0;
+				std::cout << "Seeked right to ~" << target << " sec\n";
+			}
+		}
+
+		if(playState)
+		{ 
+			videoFrameTimer += dt;
+			double frameDuration = 1.0 / vp.fps();   
+		
+			
+			while (videoFrameTimer >= frameDuration)
+			{
+				if (vp.decodeOneFrame())
+				{
+					videoFrameTimer -= frameDuration;
+				}
+				else
+				{
+					playState = false;
+				}
+			}
+
+		}
+		
+		GLuint tex = vp.texture();
+
+		if (tex != 0)
 		{
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
@@ -131,18 +208,20 @@ void App::run()
 
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
-			glBindTexture(GL_TEXTURE_2D, imageTexture);
+			glBindTexture(GL_TEXTURE_2D, tex);
 
 			float x0, x1, y0, y1;
-			camera.computeImageRect(width, height, imageWidth, imageHeight, x0, x1, y0, y1);
+			camera.computeImageRect(width, height, vp.width(), vp.height(), x0, x1, y0, y1);
 
 			glBegin(GL_QUADS);
-			glTexCoord2f(0.0f, 0.0f); glVertex2f(x0, y0);
-			glTexCoord2f(1.0f, 0.0f); glVertex2f(x1, y0);
-			glTexCoord2f(1.0f, 1.0f); glVertex2f(x1, y1);
-			glTexCoord2f(0.0f, 1.0f); glVertex2f(x0, y1);
+			glTexCoord2f(0.0f, 1.0f); glVertex2f(x0, y0);
+			glTexCoord2f(1.0f, 1.0f); glVertex2f(x1, y0);
+			glTexCoord2f(1.0f, 0.0f); glVertex2f(x1, y1);
+			glTexCoord2f(0.0f, 0.0f); glVertex2f(x0, y1);
 			glEnd();
+			
 			glBindTexture(GL_TEXTURE_2D, 0);
+
 		}
 
 		glfwSwapBuffers(window);
@@ -195,24 +274,7 @@ bool App::loadTestImage(const char* path)
 
 	std::cout << "loaded image: " << path << "(" << imageWidth << "x" << imageHeight << ", 4 channels)\n";
 
-	glGenTextures(1, &imageTexture);
-	glBindTexture(GL_TEXTURE_2D, imageTexture);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-
-	glTexImage2D(
-		GL_TEXTURE_2D, 0,
-		GL_RGBA,
-		imageWidth, imageHeight, 0,
-		GL_RGBA,
-		GL_UNSIGNED_BYTE,
-		data
-	);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
+	
 
 	stbi_image_free(data);
 	return true;

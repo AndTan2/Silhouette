@@ -14,21 +14,28 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glfw)
 
 find_package(OpenGL REQUIRED)
+find_package(FFMPEG REQUIRED)
 
 add_executable(Silhouette
     src/main.cpp
     src/App.cpp
     src/ImageLoader.cpp
     src/Input.cpp 
-    src/Camera.cpp)
+    src/Camera.cpp 
+    src/VideoPlayer.cpp)
 
 target_include_directories(Silhouette PRIVATE
     external/stb
 )
 
+target_include_directories(Silhouette PRIVATE
+    ${FFMPEG_INCLUDE_DIRS}
+)
+
 target_link_libraries(Silhouette PRIVATE
     glfw
     OpenGL::GL
+    ${FFMPEG_LIBRARIES}
 )
 
 add_custom_target(copy_assets ALL

@@ -1,6 +1,7 @@
 #pragma once
 #include "Input.hpp"
 #include "Camera.hpp"
+#include "VideoPlayer.hpp"
 
 #include"stb_image.h"
 
@@ -32,15 +33,17 @@ private:
 
 	Input input;
 	Camera camera;
+	VideoPlayer vp;
 
 	GLFWcursor* handCursor;
 
 	std::chrono::time_point<std::chrono::high_resolution_clock> frameEnd;
 	double frameDuration = 0;
 	double lastTime;
+	bool playState = false;
 
 	GLFWcursor* openHandCursor = nullptr;
-
+	GLFWcursor* closedHandCursor = nullptr;
 
 
 	bool loadTestImage(const char* path);
