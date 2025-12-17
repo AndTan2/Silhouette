@@ -311,7 +311,7 @@ bool VideoPlayer::decodeOneFrame()
 			if (pts != AV_NOPTS_VALUE)
 			{
 				double seconds = pts * av_q2d(videoStream->time_base);
-				currentTime = seconds;  // <--- add this line
+				currentTime = seconds;  
 
 				std::cout << " pts: " << pts << " ("
 					<< seconds << " sec)\n";
@@ -341,6 +341,7 @@ bool VideoPlayer::decodeOneFrame()
 			);
 
 			glBindTexture(GL_TEXTURE_2D, 0);
+			frameCache.emplace_back(videoWidth, videoHeight, rgbaPlanes[0],currentTime);
 
 			return true;
 		}

@@ -1,5 +1,6 @@
 #pragma once
 #include<string>
+#include <vector>
 #include<iostream>
 extern "C" {
 #include<libavformat/avformat.h>
@@ -13,6 +14,20 @@ extern "C" {
 #include<Windows.h>
 #endif
 #include<gl/GL.h>
+
+
+struct CachedFrame
+{
+	std::vector<uint8_t> rgbaData;
+	int width;
+	int height;
+	double timestamp; 
+
+	CachedFrame(int w, int h, uint8_t* src, double ts) 
+		: width(w), height(h), timestamp(ts), rgbaData(src, src + w * h * 4)
+	{
+	}
+};
 
 class VideoPlayer
 {
@@ -37,6 +52,7 @@ public:
 
 	bool seekSeconds(double t);
 
+	std::vector<CachedFrame> frameCache;
 	
 
 private:

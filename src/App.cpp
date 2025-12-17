@@ -290,10 +290,32 @@ void App::drawScrubber()
 	glVertex2f(0.0f, scrubberY1);
 	glEnd();
 
+	if (!vp.frameCache.empty() && vp.durationSeconds() > 0.0)
+	{
+		glColor3f(0.0f, 1.0f, 0.0f); 
+
+		
+		for (const auto& frame : vp.frameCache)
+		{
+			
+			float x = (float)(frame.timestamp / vp.durationSeconds() * width);
+
+			
+			float markerWidth = 2.0f; 
+
+			glBegin(GL_QUADS);
+			glVertex2f(x - markerWidth / 2, scrubberY0);
+			glVertex2f(x + markerWidth / 2, scrubberY0);
+			glVertex2f(x + markerWidth / 2, scrubberY1);
+			glVertex2f(x - markerWidth / 2, scrubberY1);
+			glEnd();
+		}
+	}
+
 	if (vp.durationSeconds() > 0.0)
 	{
 		float playheadX = (float)(vp.currentTimeSeconds() / vp.durationSeconds() * width);
-		float playheadWidth = 2.0f; // 2 pixels wide
+		float playheadWidth = 2.0f; 
 
 		glColor3f(1.0f, 1.0f, 1.0f);
 		glBegin(GL_QUADS);
