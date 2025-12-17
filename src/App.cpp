@@ -82,7 +82,7 @@ bool App::init()
 	g_appInstance = this;
 	glfwSetScrollCallback(window, GLFW_ScrollCallback);
 
-	if (!vp.open("assets/test.mp4"))
+	if (!vp.open("assets/test.mkv"))
 	{
 		std::cerr << "Failed to open video.\n";
 	}
@@ -108,7 +108,7 @@ void App::run()
 
 	while (!glfwWindowShouldClose(window))
 	{
-		int width, height;
+		
 		glfwGetFramebufferSize(window, &width, &height);
 		glViewport(0, 0, width, height);
 
@@ -154,6 +154,21 @@ void App::run()
 
 		if (input.kPressed()) {
 			playState = !playState;
+		}
+
+		if (input.leftClickPressed())
+		{
+			float mouseY = (float)(height - input.mouseY()); 
+			if (mouseY <= scrubberY1 && mouseY >= scrubberY0)
+			{
+				double t = (input.mouseX() / width) * vp.durationSeconds();
+				if (vp.seekSeconds(t))
+				{
+					videoFrameTimer = 0.0;
+					std::cout << "Scrubber clicked: seeked to " << t << " sec\n";
+				}
+			}
+
 		}
 
 		double curTime = vp.currentTimeSeconds();
@@ -224,6 +239,10 @@ void App::run()
 
 		}
 
+		scrubberY1 = height / 8.0f;
+		scrubberY0 = 0.0f;
+		drawScrubber();
+
 		glfwSwapBuffers(window);
 
 		const double targetFPS = 360.0;
@@ -258,6 +277,34 @@ void App::shutdown()
 		window = nullptr;
 	}
 	glfwTerminate();
+}
+
+void App::drawScrubber()
+{
+
+	glColor3f(0.3f, 0.3f, 0.3f);
+	glBegin(GL_QUADS);
+	glVertex2f(0.0f, scrubberY0);
+	glVertex2f((float)width, scrubberY0);
+	glVertex2f((float)width, scrubberY1);
+	glVertex2f(0.0f, scrubberY1);
+	glEnd();
+
+	if (vp.durationSeconds() > 0.0)
+	{
+		float playheadX = (float)(vp.currentTimeSeconds() / vp.durationSeconds() * width);
+		float playheadWidth = 2.0f; // 2 pixels wide
+
+		glColor3f(1.0f, 1.0f, 1.0f);
+		glBegin(GL_QUADS);
+		glVertex2f(playheadX - playheadWidth / 2.0f, scrubberY0);
+		glVertex2f(playheadX + playheadWidth / 2.0f, scrubberY0);
+		glVertex2f(playheadX + playheadWidth / 2.0f, scrubberY1);
+		glVertex2f(playheadX - playheadWidth / 2.0f, scrubberY1);
+		glEnd();
+	}
+
+	glColor3f(1.0f, 1.0f, 1.0f);
 }
 
 bool App::loadTestImage(const char* path)

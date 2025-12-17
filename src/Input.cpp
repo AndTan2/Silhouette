@@ -10,6 +10,8 @@ void Input::beginFrame()
 	_prevK = _kDown;
 	_prevLeftA = _leftArrowDown;
 	_prevRightA = _rightArrowDown;
+	_prevLeftClick = _leftClickDown;
+	
 }
 
 void Input::updateFromGlfw(GLFWwindow* window)

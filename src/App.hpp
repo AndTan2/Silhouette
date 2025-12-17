@@ -21,6 +21,7 @@ public:
 
 	void shutdown();
 
+	void drawScrubber();
 
 	void onScroll(double xoffset, double yoffset);
 
@@ -45,6 +46,10 @@ private:
 	GLFWcursor* openHandCursor = nullptr;
 	GLFWcursor* closedHandCursor = nullptr;
 
+	int width, height;
+	float scrubberHeight = height / 8.0f;
+	float scrubberY0 = 0.0f;
+	float scrubberY1 = scrubberHeight;
 
 	bool loadTestImage(const char* path);
 

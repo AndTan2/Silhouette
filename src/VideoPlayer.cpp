@@ -354,7 +354,7 @@ bool VideoPlayer::seekSeconds(double t)
 	if (!opened || !videoStream)
 		return false;
 
-	// Clamp to [0, duration]
+
 	if (videoDuration > 0.0)
 	{
 		if (t < 0.0) t = 0.0;
@@ -367,7 +367,7 @@ bool VideoPlayer::seekSeconds(double t)
 	std::cout << "SeekSeconds requested: t=" << t
 		<< " sec, targetPts=" << targetPts << "\n";
 
-	// 1) Seek the demuxer
+
 	int ret = av_seek_frame(fmtCtx, videoStreamIndex, targetPts,
 		AVSEEK_FLAG_BACKWARD);
 	if (ret < 0)
@@ -376,11 +376,9 @@ bool VideoPlayer::seekSeconds(double t)
 		return false;
 	}
 
-	// 2) Flush decoder state so it's ready for new data
 	avcodec_flush_buffers(codecCtx);
 
-	// 3) Decode frames until we catch up to target time
-	const double epsilon = 0.5 * (1.0 / videoFPS); // half-frame tolerance
+	const double epsilon = 0.5 * (1.0 / videoFPS);
 
 	while (true)
 	{

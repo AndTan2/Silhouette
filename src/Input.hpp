@@ -23,6 +23,7 @@ public:
 	bool kPressed() const { return _kDown && !_prevK; }
 	bool leftPressed() const { return _leftArrowDown && !_prevLeftA; }
 	bool rightPressed() const { return _rightArrowDown && !_prevRightA; }
+	bool leftClickPressed() const { return _leftClickDown && !_prevLeftClick; }
 private:
 	double _mouseX = 0.0f;
 	double _mouseY = 0.0f;
@@ -43,5 +44,8 @@ private:
 
 	bool _prevLeftA = false;
 	bool _prevRightA = false;
+
+	bool _prevLeftClick = false;
+	
 	
 };
