@@ -1,56 +1,59 @@
 #pragma once
+
 #include "Input.hpp"
 #include "Camera.hpp"
 #include "VideoPlayer.hpp"
-
-#include"stb_image.h"
+#include "stb_image.h"
 
 #include <chrono>
 #include <thread>
-
-struct GLFWwindow;
+#include <GLFW/glfw3.h>
 
 class App
 {
-
 public:
+    bool init();
+    void run();
+    void shutdown();
 
-	bool init();
-
-	void run();
-
-	void shutdown();
-
-	void drawScrubber();
-
-	void onScroll(double xoffset, double yoffset);
+    void drawScrubber();
+    void onScroll(double xoffset, double yoffset);
 
 private:
-	GLFWwindow* window = nullptr;
+    GLFWwindow* window = nullptr;
 
-	unsigned int imageTexture = 0;
-	int imageWidth = 0;
-	int imageHeight = 0;
 
-	Input input;
-	Camera camera;
-	VideoPlayer vp;
+    GLuint imageTexture = 0;
+    int imageWidth = 0;
+    int imageHeight = 0;
 
-	GLFWcursor* handCursor;
+    Input input;
+    Camera camera;
+    VideoPlayer vp;
 
-	std::chrono::time_point<std::chrono::high_resolution_clock> frameEnd;
-	double frameDuration = 0;
-	double lastTime;
-	bool playState = false;
 
-	GLFWcursor* openHandCursor = nullptr;
-	GLFWcursor* closedHandCursor = nullptr;
+    GLFWcursor* openHandCursor = nullptr;
+    GLFWcursor* closedHandCursor = nullptr;
 
-	int width, height;
-	float scrubberHeight = height / 8.0f;
-	float scrubberY0 = 0.0f;
-	float scrubberY1 = scrubberHeight;
 
-	bool loadTestImage(const char* path);
+    std::chrono::time_point<std::chrono::high_resolution_clock> frameEnd;
+    double frameDuration = 0.0;
+    double lastTime = 0.0;
 
+
+    bool playState = false;
+
+
+    int width = 1280;
+    int height = 720;
+
+
+    float scrubberY0 = 0.0f;
+    float scrubberY1 = 0.0f;
+
+
+    std::vector<int> keyframePts;
+
+
+    bool loadTestImage(const char* path);
 };

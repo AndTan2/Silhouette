@@ -2,35 +2,36 @@
 
 void Input::beginFrame()
 {
-	_prevMouseX = _mouseX;
-	_prevMouseY = _mouseY;
-	_scrollX = 0.0f;
-	_scrollY = 0.0f;
+    _prevMouseX = _mouseX;
+    _prevMouseY = _mouseY;
+    _scrollX = 0.0;
+    _scrollY = 0.0;
 
-	_prevK = _kDown;
-	_prevLeftA = _leftArrowDown;
-	_prevRightA = _rightArrowDown;
-	_prevLeftClick = _leftClickDown;
-	
+    _prevK = _kDown;
+    _prevC = _cDown;
+    _prevF = _fDown;
+    _prevLeftA = _leftArrowDown;
+    _prevRightA = _rightArrowDown;
+    _prevLeftClick = _leftClickDown;
 }
 
 void Input::updateFromGlfw(GLFWwindow* window)
 {
-	glfwGetCursorPos(window, &_mouseX, &_mouseY);
+    glfwGetCursorPos(window, &_mouseX, &_mouseY);
 
-	_leftClickDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+    _leftClickDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+    _spaceDown = (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS);
 
-	_spaceDown = (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS);
-	
-	_kDown = (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS);
+    _kDown = (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS);
+    _cDown = (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS);
+    _fDown = (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS);
 
-	_leftArrowDown = (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS);
-
-	_rightArrowDown = (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS);
+    _leftArrowDown = (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS);
+    _rightArrowDown = (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS);
 }
 
 void Input::handleScroll(double xoffset, double yoffset)
 {
-	_scrollX += xoffset;
-	_scrollY += yoffset;
+    _scrollX += xoffset;
+    _scrollY += yoffset;
 }
