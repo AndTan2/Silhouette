@@ -2,6 +2,9 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include "DATA_TYPES.hpp"
+#include "IFrameFetcher.hpp"
+
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -16,31 +19,42 @@ extern "C" {
 #endif
 #include <gl/GL.h>
 
-struct CachedFrame
-{
-    std::vector<uint8_t> rgbaFrameData;
-    int width;
-    int height;
-    int64_t pts; // presentation timestamp
 
-    CachedFrame(int w, int h, int64_t pts_, const std::vector<uint8_t>& data)
-        : width(w), height(h), pts(pts_), rgbaFrameData(data)
-    {
-    }
-};
 
-class VideoPlayer
+class VideoPlayer : public IFrameFetcher
+    , public IFrameCacheState
 {
 public:
     VideoPlayer();
     ~VideoPlayer();
 
-    bool open(const std::string& path);
-    void close();
 
-    bool decodeOneFrame();
-    bool seekSeconds(double t);
-    void seek(double t);
+    
+    void pushFrame(const CachedFrame& frame) override {
+        insertFrameSorted(frame.pts, frame.rgbaFrameData);
+    }
+
+    double getCurrentCacheTime() const override {
+        return currentCacheTime;
+    }
+
+    void setSeekController(SeekControll* seekController) {
+        sc=seekController;
+    }
+   
+
+    void setVideoProperties(int width, int height, double fps, double duration, double timeBase, std::vector<int> Kframes) override {
+        videoWidth = width;
+        videoHeight = height;
+        videoFPS = fps;
+        videoDuration = duration;
+        videoTimeBase = timeBase;
+        KeyFrames = Kframes;
+    }
+  
+    void setDuration(double seconds) {
+        videoDuration = seconds;
+    }
 
     bool displayCachedFrame(double t);
     bool isTimeInsideCache(double t) const;
@@ -48,10 +62,13 @@ public:
     void clearCache();
     void printCacheTimestamps() const;
     void trimCache(double maxAgeSeconds);
-    std::vector<int> getAllKeyFramePts();
+
+    void seek(double t);
+
+    void playFromCache(double dt);
 
     int findCachedFrameIndexBySeconds(double t) const;
-    bool ensureFrameCache(double secondsAhead);
+    
 
     const uint8_t* rgbaData() const { return rgbaPlanes[0]; }
     int rgbaStride() const { return rgbaLinesize[0]; }
@@ -59,12 +76,12 @@ public:
     int height() const { return videoHeight; }
     GLuint texture() const { return videoTexture; }
 
-    
-
+   
 
     double fps() const { return videoFPS; }
     double durationSeconds() const { return videoDuration; }
-    double currentTimeSeconds() const { return currentTime; }
+    
+
     double currentCacheTimeSeconds() const { return currentCacheTime; }
 
     std::vector<CachedFrame> frameCache;
@@ -72,18 +89,13 @@ public:
     int64_t secondsToPts(double t) const;
     double ptsToSeconds(int64_t pts) const;
 
+    void open();
+    std::vector<int> KeyFrames;
+
 private:
-    bool opened = false;
+    
+    SeekControll* sc = nullptr;
 
-    AVFormatContext* fmtCtx = nullptr;
-    AVCodecContext* codecCtx = nullptr;
-    AVStream* videoStream = nullptr;
-    int videoStreamIndex = -1;
-
-    AVFrame* frame = nullptr;
-    AVPacket* packet = nullptr;
-
-    SwsContext* swsCtx = nullptr;
     int videoWidth = 0;
     int videoHeight = 0;
 
@@ -94,13 +106,16 @@ private:
 
     double videoFPS = 30.0;
     double videoDuration = 0.0;
-    double currentTime = 0.0;
 
     double currentCacheTime = 0.0;
     int currentCacheIndex = 0;
+    double videoTimeBase = 0;
 
-    bool convertFrameToRGBA();
+ 
+    
+    
+
     bool hasFrameWithPTS(int64_t pts) const;
-    void insertFrameSorted(int64_t pts, uint8_t* rgba);
+    void insertFrameSorted(int64_t pts, std::vector<uint8_t> rgbaFrameData);
     
 };

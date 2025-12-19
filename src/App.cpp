@@ -30,11 +30,48 @@ bool App::init()
         return false;
     }
 
-    /* Cursor code commented out
-    int cw, ch, channels;
+    /*int cw, ch, channels;
     unsigned char* pixels = stbi_load("assets/open_palm_cursor.png", &cw, &ch, &channels, 4);
-    ...
-    */
+    if (!pixels) {
+        std::cerr << "Failed to load cursor image\n";
+    }
+    else {
+        GLFWimage img;
+        img.width = cw;
+        img.height = ch;
+        img.pixels = pixels;
+
+        int hotX = cw / 2;
+        int hotY = ch / 2;
+
+        openHandCursor = glfwCreateCursor(&img, hotX, hotY);
+        stbi_image_free(pixels);
+
+        if (!openHandCursor) {
+            std::cerr << "Failed to create GLFW cursor from image\n";
+        }
+    }
+
+    pixels = stbi_load("assets/closed_palm_cursor.png", &cw, &ch, &channels, 4);
+    if (!pixels) {
+        std::cerr << "Failed to load cursor image\n";
+    }
+    else {
+        GLFWimage img;
+        img.width = cw;
+        img.height = ch;
+        img.pixels = pixels;
+
+        int hotX = cw / 2;
+        int hotY = ch / 2;
+
+        closedHandCursor = glfwCreateCursor(&img, hotX, hotY);
+        stbi_image_free(pixels);
+
+        if (!closedHandCursor) {
+            std::cerr << "Failed to create GLFW cursor from image\n";
+        }
+    }*/
 
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);
@@ -43,18 +80,18 @@ bool App::init()
     g_appInstance = this;
     glfwSetScrollCallback(window, GLFW_ScrollCallback);
 
-    if (!vp.open("assets/test.mp4")) {
-        std::cerr << "Failed to open video.\n";
-    }
-    else {
-        if (vp.decodeOneFrame()) {
-            std::cout << "RGBA buffer info:\n";
-            std::cout << "  width: " << vp.width() << " height: " << vp.height() << "\n";
-            std::cout << "  stride: " << vp.rgbaStride() << " bytes\n";
-        }
-    }
+    
 
-    keyframePts = vp.getAllKeyFramePts();
+    dec.open("assets/test.mp4");
+    
+    dec.setFrameFetcher(&vp);
+    dec.setCacheState(&vp);
+    dec.sendInfoToPlayer();
+
+    vp.open();
+    vp.setSeekController(&dec);
+
+    keyframePts = vp.KeyFrames;
     return true;
 }
 
@@ -117,7 +154,7 @@ void App::run()
             }
         }
 
-        double curTime = vp.currentTimeSeconds();
+       /* double curTime = vp.currentTimeSeconds();
 
         if (input.leftPressed()) {
             double target = curTime - 1.0;
@@ -133,30 +170,22 @@ void App::run()
                 videoFrameTimer = 0.0;
                 std::cout << "Seeked right to ~" << target << " sec\n";
             }
-        }
+        }*/
 
         if (input.cPressed()) {
             vp.clearCache();
         }
 
         if (input.fPressed()) {
+            
             vp.printCacheTimestamps();
         }
 
         if (playState) {
-            videoFrameTimer += dt;
-            double frameDuration = 1.0 / vp.fps();
-
-            while (videoFrameTimer >= frameDuration) {
-                if (vp.decodeOneFrame()) {
-                    videoFrameTimer -= frameDuration;
-                    vp.trimCache(2);
-                }
-                else {
-                    playState = false;
-                }
-            }
+            vp.playFromCache(dt);
         }
+
+        dec.ensureSufficintFrames();
 
         GLuint tex = vp.texture();
         if (tex != 0) {
@@ -256,7 +285,7 @@ void App::drawScrubber()
         }
     }
 
-    if (vp.durationSeconds() > 0.0) {
+   /* if (vp.durationSeconds() > 0.0) {
         float playheadX = (float)(vp.currentTimeSeconds() / vp.durationSeconds() * width);
         float playheadWidth = 2.0f;
         glColor3f(0.0f, 0.0f, 1.0f);
@@ -266,7 +295,7 @@ void App::drawScrubber()
         glVertex2f(playheadX + playheadWidth / 2.0f, scrubberY1);
         glVertex2f(playheadX - playheadWidth / 2.0f, scrubberY1);
         glEnd();
-    }
+    }*/
 
     if (vp.durationSeconds() > 0.0) {
         float playheadX = (float)(vp.currentCacheTimeSeconds() / vp.durationSeconds() * width);

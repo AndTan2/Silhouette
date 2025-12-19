@@ -4,6 +4,7 @@
 #include "Camera.hpp"
 #include "VideoPlayer.hpp"
 #include "stb_image.h"
+#include "Decoder.hpp"
 
 #include <chrono>
 #include <thread>
@@ -30,6 +31,7 @@ private:
     Input input;
     Camera camera;
     VideoPlayer vp;
+    Decoder dec;
 
 
     GLFWcursor* openHandCursor = nullptr;

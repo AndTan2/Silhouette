@@ -22,7 +22,7 @@ add_executable(Silhouette
     src/ImageLoader.cpp
     src/Input.cpp 
     src/Camera.cpp 
-    src/VideoPlayer.cpp)
+    src/VideoPlayer.cpp "src/Decoder.cpp")
 
 target_include_directories(Silhouette PRIVATE
     external/stb
