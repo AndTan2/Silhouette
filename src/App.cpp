@@ -82,12 +82,12 @@ bool App::init()
 
     
 
-    dec.open("assets/test.mp4");
+    dec.open("assets/test2.mp4");
     
     dec.setFrameFetcher(&vp);
     dec.setCacheState(&vp);
     dec.sendInfoToPlayer();
-
+    scrb.init(&vp);
     vp.open();
     vp.setSeekController(&dec);
 
@@ -125,34 +125,63 @@ void App::run()
         if (!input.spaceDown())
             glfwSetCursor(window, nullptr);
 
-        bool wantPan = input.leftClickDown() && input.spaceDown();
+        double mx, my;
+        glfwGetCursorPos(window, &mx, &my);
+        float mouseX = (float)mx;
+        float mouseY = (float)(height - my);
+
+        bool wantPan = input.leftClickDown() && input.spaceDown() && (mouseY > (height / 8));
+        bool wantScrubberPan = input.leftClickDown() && input.spaceDown() && (mouseY >= 0.0f && mouseY <= (height / 8));
         camera.setPanning(wantPan);
 
         if (wantPan) {
             camera.addPanDelta((float)input.deltaX(), (float)input.deltaY());
         }
 
-        if (input.scrollY() != 0.0f) {
-            double mx, my;
-            glfwGetCursorPos(window, &mx, &my);
-            float mouseX = (float)mx;
-            float mouseY = (float)(height - my);
-            camera.onScroll((float)input.scrollY(), mouseX, mouseY, width, height);
+        
+        if (wantScrubberPan) {
+            float dx = (float)input.deltaX();
+            scrb.addPanDelta(dx);
         }
 
+        if (input.scrollY() != 0.0f) {
+            
+            if (mouseY > (height / 8)) {
+                camera.onScroll((float)input.scrollY(), mouseX, mouseY, width, height);
+            }
+            if (mouseY >= 0.0f && mouseY <= (height / 8))
+            {
+                scrb.zoom((float)input.scrollY(), (float)mx, (float)width);
+            }
+        }
+
+
         camera.beginFrame(dt);
+        scrb.update(dt);
 
         if (input.kPressed()) {
             playState = !playState;
         }
 
-        if (input.leftClickDown()) {
+        if (input.leftClickDown() && !input.spaceDown()) {
             float mouseY = (float)(height - input.mouseY());
-            if (mouseY <= scrubberY1 && mouseY >= scrubberY0) {
-                double t = (input.mouseX() / width) * vp.durationSeconds();
+            if (mouseY <= (height / 8) && mouseY >= 0.0f) {
+                
+                float cursorNorm = input.mouseX() / (float)width;
+
+                
+                float timelineNorm = scrb.offset + cursorNorm / scrb.zoomFactor;
+
+                
+                if (timelineNorm < 0.0f) timelineNorm = 0.0f;
+                if (timelineNorm > 1.0f) timelineNorm = 1.0f;
+
+                
+                double t = timelineNorm * vp.durationSeconds();
                 vp.seek(t);
             }
         }
+
 
        /* double curTime = vp.currentTimeSeconds();
 
@@ -182,7 +211,7 @@ void App::run()
         }
 
         if (playState) {
-            vp.playFromCache(dt);
+            dec.decodeOneFrame();
         }
 
         dec.ensureSufficintFrames();
@@ -209,9 +238,8 @@ void App::run()
             glBindTexture(GL_TEXTURE_2D, 0);
         }
 
-        scrubberY1 = height / 8.0f;
-        scrubberY0 = 0.0f;
-        drawScrubber();
+        
+        scrb.draw();
 
         glfwSwapBuffers(window);
 
@@ -247,70 +275,7 @@ void App::shutdown()
     glfwTerminate();
 }
 
-void App::drawScrubber()
-{
-    glColor3f(0.3f, 0.3f, 0.3f);
-    glBegin(GL_QUADS);
-    glVertex2f(0.0f, scrubberY0);
-    glVertex2f((float)width, scrubberY0);
-    glVertex2f((float)width, scrubberY1);
-    glVertex2f(0.0f, scrubberY1);
-    glEnd();
 
-    if (!vp.frameCache.empty() && vp.durationSeconds() > 0.0) {
-        glColor3f(0.0f, 1.0f, 0.0f);
-        for (const auto& frame : vp.frameCache) {
-            float x = (float)(vp.ptsToSeconds(frame.pts) / vp.durationSeconds() * width);
-            float markerWidth = 2.0f;
-            glBegin(GL_QUADS);
-            glVertex2f(x - markerWidth / 2, scrubberY0);
-            glVertex2f(x + markerWidth / 2, scrubberY0);
-            glVertex2f(x + markerWidth / 2, scrubberY1);
-            glVertex2f(x - markerWidth / 2, scrubberY1);
-            glEnd();
-        }
-    }
-
-    if (!keyframePts.empty() && vp.durationSeconds() > 0.0) {
-        glColor3f(1.0f, 1.0f, 0.0f);
-        for (auto pts : keyframePts) {
-            float x = (float)(vp.ptsToSeconds(pts) / vp.durationSeconds() * width);
-            float markerWidth = 2.0f;
-            glBegin(GL_QUADS);
-            glVertex2f(x - markerWidth / 2, scrubberY0);
-            glVertex2f(x + markerWidth / 2, scrubberY0);
-            glVertex2f(x + markerWidth / 2, scrubberY1);
-            glVertex2f(x - markerWidth / 2, scrubberY1);
-            glEnd();
-        }
-    }
-
-   /* if (vp.durationSeconds() > 0.0) {
-        float playheadX = (float)(vp.currentTimeSeconds() / vp.durationSeconds() * width);
-        float playheadWidth = 2.0f;
-        glColor3f(0.0f, 0.0f, 1.0f);
-        glBegin(GL_QUADS);
-        glVertex2f(playheadX - playheadWidth / 2.0f, scrubberY0);
-        glVertex2f(playheadX + playheadWidth / 2.0f, scrubberY0);
-        glVertex2f(playheadX + playheadWidth / 2.0f, scrubberY1);
-        glVertex2f(playheadX - playheadWidth / 2.0f, scrubberY1);
-        glEnd();
-    }*/
-
-    if (vp.durationSeconds() > 0.0) {
-        float playheadX = (float)(vp.currentCacheTimeSeconds() / vp.durationSeconds() * width);
-        float playheadWidth = 2.0f;
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glBegin(GL_QUADS);
-        glVertex2f(playheadX - playheadWidth / 2.0f, scrubberY0);
-        glVertex2f(playheadX + playheadWidth / 2.0f, scrubberY0);
-        glVertex2f(playheadX + playheadWidth / 2.0f, scrubberY1);
-        glVertex2f(playheadX - playheadWidth / 2.0f, scrubberY1);
-        glEnd();
-    }
-
-    glColor3f(1.0f, 1.0f, 1.0f);
-}
 
 bool App::loadTestImage(const char* path)
 {

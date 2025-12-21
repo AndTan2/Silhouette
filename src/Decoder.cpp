@@ -58,11 +58,11 @@ bool Decoder::open(const std::string& path)
         streamFps = av_q2d(videoStream->r_frame_rate);
     }
     if (streamFps < 1.0) {
-        streamFps = 25.0; // safe default
+        streamFps = 25.0;
     }
     videoFPS = streamFps;
 
-    // compute duration in seconds
+   
     if (fmtCtx->duration != AV_NOPTS_VALUE) {
         videoDuration = fmtCtx->duration / (double)AV_TIME_BASE;
     }
@@ -383,8 +383,9 @@ std::vector<uint8_t> Decoder::copyRGBA(uint8_t* src)
 void Decoder::ensureSufficintFrames()
 {
     
-    ensureFrameCache(0.5);
+    //ensureFrameCache(3);
 
+  
 
 }
 

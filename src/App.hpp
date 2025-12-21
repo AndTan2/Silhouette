@@ -5,6 +5,7 @@
 #include "VideoPlayer.hpp"
 #include "stb_image.h"
 #include "Decoder.hpp"
+#include "Scrubber.hpp"
 
 #include <chrono>
 #include <thread>
@@ -17,7 +18,6 @@ public:
     void run();
     void shutdown();
 
-    void drawScrubber();
     void onScroll(double xoffset, double yoffset);
 
 private:
@@ -32,6 +32,7 @@ private:
     Camera camera;
     VideoPlayer vp;
     Decoder dec;
+    Scrubber scrb;
 
 
     GLFWcursor* openHandCursor = nullptr;
@@ -48,11 +49,6 @@ private:
 
     int width = 1280;
     int height = 720;
-
-
-    float scrubberY0 = 0.0f;
-    float scrubberY1 = 0.0f;
-
 
     std::vector<int> keyframePts;
 

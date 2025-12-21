@@ -108,6 +108,4 @@ external/*/lib/
 masks/
 frames/
 export/
-/assets/test.mkv
-/assets/fasdfsa.mkv
-/assets/test.mp4
+/assets/testVideos/

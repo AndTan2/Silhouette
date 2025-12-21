@@ -10,7 +10,7 @@ VideoPlayer::VideoPlayer()
 }
 
 VideoPlayer::~VideoPlayer() {
-    //close();
+ 
 }
 
 
@@ -73,7 +73,7 @@ void VideoPlayer::trimCache(double maxAgeSeconds)
     double cutoff = currentCacheTime - maxAgeSeconds;
     double cutoffFuture = currentCacheTime + 7;
 
-    // trim old frames
+ 
     while (!frameCache.empty()) {
         double frameTime = ptsToSeconds(frameCache.front().pts);
         if (frameTime < cutoff) {
@@ -84,7 +84,7 @@ void VideoPlayer::trimCache(double maxAgeSeconds)
         }
     }
 
-    // trim frames too far ahead
+    
     while (!frameCache.empty()) {
         double frameTime = ptsToSeconds(frameCache.back().pts);
         if (frameTime > cutoffFuture) {
@@ -104,16 +104,32 @@ int VideoPlayer::findCachedFrameIndexBySeconds(double t) const
 
     int64_t targetPts = secondsToPts(t);
 
-    if (targetPts < frameCache.front().pts || targetPts > frameCache.back().pts) return -1;
+  
+    int64_t framePtsTolerance = secondsToPts(0.5 / fps());
 
+ 
+    if (targetPts < frameCache.front().pts - framePtsTolerance)
+        return 0; 
+    if (targetPts > frameCache.back().pts + framePtsTolerance)
+        return static_cast<int>(frameCache.size() - 1); 
+
+  
     auto it = std::upper_bound(
         frameCache.begin(), frameCache.end(), targetPts,
         [](int64_t value, const CachedFrame& f) { return value < f.pts; }
     );
-    --it;
+
+
+    if (it != frameCache.begin()) --it;
+
+
+    if (std::abs(targetPts - it->pts) <= framePtsTolerance)
+        return static_cast<int>(std::distance(frameCache.begin(), it));
+
 
     return static_cast<int>(std::distance(frameCache.begin(), it));
 }
+
 
 int64_t VideoPlayer::secondsToPts(double t) const
 {
@@ -214,16 +230,16 @@ void VideoPlayer::seek(double t)
 
 void VideoPlayer::playFromCache(double dt)
 {
-    if (frameCache.empty()) return; // nothing to display
+    if (frameCache.empty()) return; 
 
-    // Advance playhead
+
     currentCacheTime += dt;
 
-    // Looping at the end
+ 
     if (currentCacheTime > videoDuration) {
         currentCacheTime = 0.0;
     }
 
-    // Display the frame at the current cache time
+    
     displayCachedFrame(currentCacheTime);
 }
