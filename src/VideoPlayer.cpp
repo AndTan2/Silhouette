@@ -70,6 +70,7 @@ void VideoPlayer::printCacheTimestamps() const
 
 void VideoPlayer::trimCache(double maxAgeSeconds)
 {
+     std::lock_guard<std::mutex> lock(cacheMutex);
     double cutoff = currentCacheTime - maxAgeSeconds;
     double cutoffFuture = currentCacheTime + 7;
 
@@ -141,8 +142,10 @@ double VideoPlayer::ptsToSeconds(int64_t pts) const
     return pts * videoTimeBase;
 }
 
+
 bool VideoPlayer::displayCachedFrame(double t)
 {
+    std::lock_guard<std::mutex> lock(cacheMutex);
     int idx = findCachedFrameIndexBySeconds(t);
     if (idx < 0 || idx >= frameCache.size())
         return false;
@@ -214,18 +217,25 @@ void VideoPlayer::insertFrameSorted(int64_t pts, std::vector<uint8_t> rgbaFrameD
     frameCache.insert(it, CachedFrame(videoWidth, videoHeight, pts, std::move(rgbaFrameData)));
 }
 
+
+
+
 void VideoPlayer::seek(double t)
 {
-    if (!isTimeInsideCache(t)) {
-
-        sc->newSeek(t);
-
-    }
-   
-    displayCachedFrame(t);
-    trimCache(2);
-    currentCacheTime = t;
+    bool flag = isTimeInsideCache(t);
     
+    if (!flag) 
+    {
+        sc->newSeek(t);
+    }
+    
+    currentCacheTime = t;
+
+    if (flag)
+    {
+        displayCachedFrame(t);
+        trimCache(3);
+    }
 }
 
 void VideoPlayer::playFromCache(double dt)
@@ -242,4 +252,29 @@ void VideoPlayer::playFromCache(double dt)
 
     
     displayCachedFrame(currentCacheTime);
+}
+
+void VideoPlayer::update()
+{
+    static uint64_t lastHandled = 0;
+
+    uint64_t token =
+        finishedSeekToken.load(std::memory_order_acquire);
+
+    if (token != lastHandled) {
+        lastHandled = token;
+
+        
+        onSeekCompletedMainThread();
+    }
+}
+
+void VideoPlayer::onSeekCompletedMainThread()
+{
+
+    for (int i = 0; i < 5; i++)
+        std::cout << "                                    SEEK COMPLETE SEEK COMPLETE SEEK COMPLETE SEEK COMPLETE \n";
+    displayCachedFrame(currentCacheTime);
+    trimCache(3);
+
 }

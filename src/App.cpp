@@ -82,11 +82,14 @@ bool App::init()
 
     
 
-    dec.open("assets/test2.mp4");
+    dec.open("assets/testVideos/test4.mp4");
     
     dec.setFrameFetcher(&vp);
     dec.setCacheState(&vp);
     dec.sendInfoToPlayer();
+
+    dec.startDecodingThread();
+
     scrb.init(&vp);
     vp.open();
     vp.setSeekController(&dec);
@@ -163,7 +166,7 @@ void App::run()
             playState = !playState;
         }
 
-        if (input.leftClickDown() && !input.spaceDown()) {
+        if (input.leftClickPressed() && !input.spaceDown()) {
             float mouseY = (float)(height - input.mouseY());
             if (mouseY <= (height / 8) && mouseY >= 0.0f) {
                 
@@ -182,6 +185,7 @@ void App::run()
             }
         }
 
+        vp.update();
 
        /* double curTime = vp.currentTimeSeconds();
 
@@ -214,7 +218,7 @@ void App::run()
             dec.decodeOneFrame();
         }
 
-        dec.ensureSufficintFrames();
+        
 
         GLuint tex = vp.texture();
         if (tex != 0) {
@@ -261,7 +265,7 @@ void App::run()
 void App::shutdown()
 {
     std::cout << "[App::shutdown]  cleaning up...\n";
-
+    dec.stopDecodingThread();
     if (imageTexture != 0) {
         glDeleteTextures(1, &imageTexture);
         imageTexture = 0;

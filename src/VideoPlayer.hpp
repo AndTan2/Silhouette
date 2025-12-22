@@ -31,17 +31,25 @@ public:
 
     
     void pushFrame(const CachedFrame& frame) override {
+        std::lock_guard<std::mutex> lock(cacheMutex);
         insertFrameSorted(frame.pts, frame.rgbaFrameData);
     }
 
     double getCurrentCacheTime() const override {
+        //std::lock_guard<std::mutex> lock(cacheMutex);
         return currentCacheTime;
+    }
+
+    void onSeekFinished(uint64_t seekToken) override
+    {
+        finishedSeekToken.store(seekToken, std::memory_order_release);
     }
 
     void setSeekController(SeekControll* seekController) {
         sc=seekController;
     }
-   
+
+
 
     void setVideoProperties(int width, int height, double fps, double duration, double timeBase, std::vector<int> Kframes) override {
         videoWidth = width;
@@ -67,6 +75,10 @@ public:
 
     void playFromCache(double dt);
 
+    void update();
+
+    void onSeekCompletedMainThread();
+
     int findCachedFrameIndexBySeconds(double t) const;
     
 
@@ -88,6 +100,7 @@ public:
 
     int64_t secondsToPts(double t) const;
     double ptsToSeconds(int64_t pts) const;
+  
 
     void open();
     std::vector<int> KeyFrames;
@@ -107,15 +120,21 @@ private:
     double videoFPS = 30.0;
     double videoDuration = 0.0;
 
-    double currentCacheTime = 0.0;
+    std::atomic<double> currentCacheTime = 0.0;
+  
+
+
     int currentCacheIndex = 0;
     double videoTimeBase = 0;
 
- 
+    uint64_t lastSeenSeekToken = 0;
+
     
     
 
     bool hasFrameWithPTS(int64_t pts) const;
     void insertFrameSorted(int64_t pts, std::vector<uint8_t> rgbaFrameData);
+
+    
     
 };

@@ -20,6 +20,11 @@ extern "C" {
 #endif
 #include <gl/GL.h>
 
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
+
 class Decoder : public SeekControll
 {
 public:
@@ -38,7 +43,15 @@ public:
 	}
 
 	void newSeek(double t) override {
-		seekSeconds(t);
+		{
+			seekTarget.store(t, std::memory_order_relaxed);
+			seekToken.fetch_add(1, std::memory_order_release);
+		}
+		seekCV.notify_one();
+	}
+
+	bool isSeekInProgress() const override {
+		return seekInProgress.load(std::memory_order_acquire);
 	}
 
 	std::vector<int> getAllKeyFramePts();
@@ -58,6 +71,14 @@ public:
 	double currentTimeSeconds() const { return currentTime; }
 
 	void ensureSufficintFrames();
+
+	void decodingLoop();
+
+	void startDecodingThread();
+
+	void stopDecodingThread();
+
+
 
 private:
 	bool opened = false;
@@ -88,6 +109,19 @@ private:
 	bool convertFrameToRGBA();
 	bool ensureFrameCache(double secondsAhead);
 	std::vector<uint8_t> copyRGBA(uint8_t* src);
+
+	std::thread decodeThread;
+	std::atomic<bool> running{ false };
+	std::mutex decodeMutex;
+	std::condition_variable decodeCV;
+
+	std::condition_variable seekCV;
+
+	std::atomic<uint64_t> seekToken{ 0 };
+	std::atomic<double>  seekTarget{ 0.0 };
+	std::atomic<bool> seekInProgress{ false };
+	std::atomic<uint64_t> seekCompletedToken{ 0 };
+
 
 
 

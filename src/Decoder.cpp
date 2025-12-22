@@ -14,6 +14,37 @@ Decoder::~Decoder()
     close();
 }
 
+void Decoder::decodingLoop() {
+    uint64_t handledToken = seekToken.load();
+
+    while (running) {
+
+        uint64_t currentToken = seekToken.load(std::memory_order_acquire);
+
+     
+        if (currentToken != handledToken) {
+            handledToken = currentToken;
+            double target = seekTarget.load();
+
+
+            seekInProgress.store(true, std::memory_order_release);
+
+    
+            seekSeconds(target);
+            
+
+      
+            frameFetcher->onSeekFinished(handledToken);
+            seekInProgress.store(false, std::memory_order_release);
+            continue;
+        }
+
+  
+        ensureFrameCache(3);
+    }
+}
+
+
 bool Decoder::open(const std::string& path)
 {
     close();
@@ -90,6 +121,9 @@ bool Decoder::open(const std::string& path)
         close();
         return false;
     }
+
+    codecCtx->thread_count = std::thread::hardware_concurrency(); // use all CPU cores
+    codecCtx->thread_type = FF_THREAD_FRAME; // decode multiple frames in parallel
 
     if (avcodec_open2(codecCtx, codec, nullptr) < 0) {
         std::cerr << "Failed to open codec.\n";
@@ -295,6 +329,7 @@ bool Decoder::seekSeconds(double t)
 {
     if (!opened || !videoStream) return false;
 
+  
     if (videoDuration > 0.0) {
         if (t < 0.0) t = 0.0;
         if (t > videoDuration) t = videoDuration;
@@ -305,6 +340,9 @@ bool Decoder::seekSeconds(double t)
 
     std::cout << "SeekSeconds requested: t=" << t << " sec, targetPts=" << targetPts << "\n";
 
+ 
+    uint64_t myToken = seekToken.load(std::memory_order_acquire);
+
     int ret = av_seek_frame(fmtCtx, videoStreamIndex, targetPts, AVSEEK_FLAG_BACKWARD);
     if (ret < 0) {
         std::cerr << "Failed to seek to " << t << " sec\n";
@@ -314,7 +352,14 @@ bool Decoder::seekSeconds(double t)
     avcodec_flush_buffers(codecCtx);
 
     const double epsilon = 0.5 * (1.0 / videoFPS);
+
     while (true) {
+        // check for cancellation
+        if (seekToken.load(std::memory_order_acquire) != myToken) {
+            std::cout << "Seek cancelled mid-decode\n";
+            return false; // exit immediately
+        }
+
         if (!decodeOneFrame()) {
             std::cerr << "Reached EOF while seeking.\n";
             return false;
@@ -389,3 +434,17 @@ void Decoder::ensureSufficintFrames()
 
 }
 
+
+void Decoder::startDecodingThread() {
+    if (running || !opened) return;
+    running = true;
+    decodeThread = std::thread(&Decoder::decodingLoop, this);
+}
+
+void Decoder::stopDecodingThread() {
+    if (!running) return;
+    running = false;
+    decodeCV.notify_all();
+    if (decodeThread.joinable())
+        decodeThread.join();
+}
