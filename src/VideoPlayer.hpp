@@ -33,6 +33,10 @@ public:
     void pushFrame(const CachedFrame& frame) override {
         std::lock_guard<std::mutex> lock(cacheMutex);
         insertFrameSorted(frame.pts, frame.rgbaFrameData);
+        if (displayFramesAsLoad)
+        {
+            displayCachedFrame(displayCachedFrame(frameCache.size() - 2));
+        }
     }
 
     double getCurrentCacheTime() const override {
@@ -130,7 +134,7 @@ private:
     uint64_t lastSeenSeekToken = 0;
 
     
-    
+    bool displayFramesAsLoad = false;
 
     bool hasFrameWithPTS(int64_t pts) const;
     void insertFrameSorted(int64_t pts, std::vector<uint8_t> rgbaFrameData);

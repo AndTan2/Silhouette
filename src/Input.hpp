@@ -25,7 +25,7 @@ public:
     bool rightPressed() const { return _rightArrowDown && !_prevRightA; }
     bool leftClickPressed() const { return _leftClickDown && !_prevLeftClick; }
 
-    // New keys
+    
     bool cPressed() const { return _cDown && !_prevC; }
     bool fPressed() const { return _fDown && !_prevF; }
 

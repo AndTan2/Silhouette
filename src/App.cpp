@@ -166,24 +166,39 @@ void App::run()
             playState = !playState;
         }
 
-        if (input.leftClickPressed() && !input.spaceDown()) {
-            float mouseY = (float)(height - input.mouseY());
-            if (mouseY <= (height / 8) && mouseY >= 0.0f) {
-                
-                float cursorNorm = input.mouseX() / (float)width;
+        
+        static bool wasLeftClickDown = false;
 
-                
+        if (input.leftClickDown() && !input.spaceDown()) {
+            float mouseY = static_cast<float>(height - input.mouseY());
+
+           
+            if (mouseY >= 0.0f && mouseY <= (height / 8.0f)) {
+                float cursorNorm = static_cast<float>(input.mouseX()) / width;
                 float timelineNorm = scrb.offset + cursorNorm / scrb.zoomFactor;
 
-                
+               
                 if (timelineNorm < 0.0f) timelineNorm = 0.0f;
                 if (timelineNorm > 1.0f) timelineNorm = 1.0f;
 
-                
                 double t = timelineNorm * vp.durationSeconds();
-                vp.seek(t);
+                bool insideCache = vp.isTimeInsideCache(t);
+
+                if (insideCache) {
+                   
+                    vp.seek(t);
+                }
+                else {
+                    
+                    if (!wasLeftClickDown) {
+                        vp.seek(t);
+                    }
+                }
             }
         }
+
+        
+        wasLeftClickDown = input.leftClickDown();
 
         vp.update();
 

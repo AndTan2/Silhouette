@@ -122,8 +122,8 @@ bool Decoder::open(const std::string& path)
         return false;
     }
 
-    codecCtx->thread_count = std::thread::hardware_concurrency(); // use all CPU cores
-    codecCtx->thread_type = FF_THREAD_FRAME; // decode multiple frames in parallel
+    codecCtx->thread_count = std::thread::hardware_concurrency(); 
+    codecCtx->thread_type = FF_THREAD_FRAME; 
 
     if (avcodec_open2(codecCtx, codec, nullptr) < 0) {
         std::cerr << "Failed to open codec.\n";
@@ -354,10 +354,10 @@ bool Decoder::seekSeconds(double t)
     const double epsilon = 0.5 * (1.0 / videoFPS);
 
     while (true) {
-        // check for cancellation
+       
         if (seekToken.load(std::memory_order_acquire) != myToken) {
             std::cout << "Seek cancelled mid-decode\n";
-            return false; // exit immediately
+            return false; 
         }
 
         if (!decodeOneFrame()) {

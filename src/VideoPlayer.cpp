@@ -234,7 +234,7 @@ void VideoPlayer::seek(double t)
     if (flag)
     {
         displayCachedFrame(t);
-        trimCache(3);
+        trimCache(6);
     }
 }
 
@@ -275,6 +275,6 @@ void VideoPlayer::onSeekCompletedMainThread()
     for (int i = 0; i < 5; i++)
         std::cout << "                                    SEEK COMPLETE SEEK COMPLETE SEEK COMPLETE SEEK COMPLETE \n";
     displayCachedFrame(currentCacheTime);
-    trimCache(3);
+    trimCache(6);
 
 }
