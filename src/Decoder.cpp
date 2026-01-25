@@ -293,13 +293,13 @@ bool Decoder::decodeOneFrame()
             int64_t pts2 = frame->best_effort_timestamp;
             if (pts2 == AV_NOPTS_VALUE) pts2 = frame->pts;
             if (pts2 != AV_NOPTS_VALUE) {
-                std::vector<uint8_t> rgbaCopy = copyRGBA(rgbaPlanes[0]);
+                
 
                 CachedFrame frame(
                     videoWidth,
                     videoHeight,
                     pts2,
-                    rgbaCopy
+                    std::vector<uint8_t>(rgbaPlanes[0], rgbaPlanes[0] + videoWidth * videoHeight * 4)
                 );
 
 
@@ -447,4 +447,89 @@ void Decoder::stopDecodingThread() {
     decodeCV.notify_all();
     if (decodeThread.joinable())
         decodeThread.join();
+}
+
+bool Decoder::decodeLastSegment(double target)
+{
+    if (!opened || !videoStream) return false;
+    if (keyframePts.size() < 2) return false;
+
+    double tb = av_q2d(videoStream->time_base);
+    int64_t targetPts = static_cast<int64_t>(target / tb);
+
+    auto it = std::lower_bound(keyframePts.begin(), keyframePts.end(), targetPts);
+    if (it == keyframePts.begin()) return false;
+    if (it - 1 == keyframePts.begin()) return false;
+
+    int64_t stopKeyPts = *(it - 1);
+    int64_t startKeyPts = *(it - 2);
+
+
+    double stopTime = stopKeyPts * tb;
+
+    if (av_seek_frame(fmtCtx, videoStreamIndex, startKeyPts, AVSEEK_FLAG_BACKWARD) < 0)
+        return false;
+
+    avcodec_flush_buffers(codecCtx);
+
+
+    int safetyCounter = 0;
+    const int MAX_FRAMES = 10000;
+
+    while (safetyCounter++ < MAX_FRAMES) {
+        if (!decodeOneFrame()) return false;
+
+        if (currentTime >= stopTime) break;
+    }
+
+
+    if (safetyCounter >= MAX_FRAMES) {
+
+        return false;
+    }
+
+    return true;
+}
+
+
+void Decoder::benchmark() {
+    if (!opened) {
+        std::cout << "Cannot benchmark - video not opened!\n";
+        return;
+    }
+
+    std::cout << "\n=== DECODER BENCHMARK ===\n";
+    std::cout << "Resolution: " << videoWidth << "x" << videoHeight << "\n";
+
+    const int FRAMES_TO_TEST = 200;
+
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+
+    int framesDecoded = 0;
+    for (int i = 0; i < FRAMES_TO_TEST; i++) {
+        if (!decodeOneFrame()) {
+            std::cout << "Stopped at frame " << i << " (EOF/error)\n";
+            break;
+        }
+        framesDecoded++;
+    }
+
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+
+    auto duration = std::chrono::duration<double>(end - start);
+    double seconds = duration.count();
+    double fps = framesDecoded / seconds;
+    double msPerFrame = (seconds * 1000.0) / framesDecoded;
+
+
+    std::cout << "Frames decoded: " << framesDecoded << "\n";
+    std::cout << "Time taken: " << seconds << " seconds\n";
+    std::cout << "FPS: " << fps << "\n";
+    std::cout << "ms per frame: " << msPerFrame << " ms\n";
+
+    std::cout << "=========================\n\n";
 }

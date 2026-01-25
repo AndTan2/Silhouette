@@ -5,7 +5,7 @@
 #include <iostream>
 #include "DATA_TYPES.hpp"
 #include "IFrameFetcher.hpp"
-
+#include <chrono>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -14,11 +14,6 @@ extern "C" {
 #include <libavutil/imgutils.h>
 }
 
-#include <GLFW/glfw3.h>
-#if defined(_WIN32)
-#include <Windows.h>
-#endif
-#include <gl/GL.h>
 
 #include <thread>
 #include <atomic>
@@ -55,6 +50,7 @@ public:
 	}
 
 	std::vector<int> getAllKeyFramePts();
+	std::vector<int> keyframePts;
 
 	bool decodeOneFrame();
 	bool seekSeconds(double t);
@@ -78,7 +74,9 @@ public:
 
 	void stopDecodingThread();
 
+	bool decodeLastSegment(double target);
 
+	void benchmark();
 
 private:
 	bool opened = false;

@@ -3,13 +3,12 @@
 #include "Input.hpp"
 #include "Camera.hpp"
 #include "VideoPlayer.hpp"
-#include "stb_image.h"
 #include "Decoder.hpp"
 #include "Scrubber.hpp"
+#include "YUVRenderer.hpp"
 
 #include <chrono>
 #include <thread>
-#include <GLFW/glfw3.h>
 
 class App
 {
@@ -33,7 +32,9 @@ private:
     VideoPlayer vp;
     Decoder dec;
     Scrubber scrb;
+    YUVRenderer yuvRenderer;
 
+    bool useYUVRenderer = false;
 
     GLFWcursor* openHandCursor = nullptr;
     GLFWcursor* closedHandCursor = nullptr;
@@ -52,6 +53,4 @@ private:
 
     std::vector<int> keyframePts;
 
-
-    bool loadTestImage(const char* path);
 };

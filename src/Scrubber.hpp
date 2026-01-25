@@ -2,19 +2,15 @@
 #include "VideoPlayer.hpp"
 
 
-#include <GLFW/glfw3.h>
-#if defined(_WIN32)
-#include <Windows.h>
-#endif
-#include <gl/GL.h>
+
 
 class Scrubber
 {
 public:
-	
+
 	Scrubber();
 
-	
+
 
 	void init(VideoPlayer* videoPlayer);
 
@@ -29,7 +25,7 @@ public:
 
 	float zoomFactor = 1.0f;
 	float offset = 0.0f;
-
+	float interpolatedOffset = 0.0f;
 private:
 
 	VideoPlayer* vp;
@@ -37,13 +33,13 @@ private:
 	float scrubberY0 = 0.0f;
 	float scrubberY1 = 0.0f;
 
-	           
+
 	const float minZoom = 1.0f;
 	const float maxZoom = 10.0f;
 
-	float interpolatedOffset = 0.0f; 
-	bool panning = false; 
 
-	
+	bool panning = false;
+
+
 
 };

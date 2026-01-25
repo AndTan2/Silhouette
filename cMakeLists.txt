@@ -11,31 +11,63 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/glfw/glfw.git
     GIT_TAG 3.4
 )
+
+
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+
+
+set(GLFW_INCLUDE_NONE ON CACHE BOOL "Don't include OpenGL headers" FORCE)
+
 FetchContent_MakeAvailable(glfw)
 
 find_package(OpenGL REQUIRED)
 find_package(FFMPEG REQUIRED)
 
+
+add_library(glad glad/src/glad.c)
+
+target_include_directories(glad PUBLIC
+    ${CMAKE_SOURCE_DIR}/glad/include
+)
+
+# Main executable
 add_executable(Silhouette
     src/main.cpp
     src/App.cpp
-    src/ImageLoader.cpp
+    
     src/Input.cpp 
     src/Camera.cpp 
-    src/VideoPlayer.cpp "src/Decoder.cpp" "src/Scrubber.cpp")
-
-target_include_directories(Silhouette PRIVATE
-    external/stb
+    src/VideoPlayer.cpp 
+    src/Decoder.cpp 
+    src/Scrubber.cpp 
+    src/YUVRenderer.cpp
 )
 
+
 target_include_directories(Silhouette PRIVATE
+    ${CMAKE_SOURCE_DIR}/glad/include  # glad BEFORE GLFW
+    external/stb
     ${FFMPEG_INCLUDE_DIRS}
 )
 
+
+target_include_directories(Silhouette PRIVATE
+    ${glfw_SOURCE_DIR}/include
+)
+
+
 target_link_libraries(Silhouette PRIVATE
+    glad      # glad MUST come before glfw
     glfw
     OpenGL::GL
     ${FFMPEG_LIBRARIES}
+)
+
+
+target_link_libraries(Silhouette PRIVATE
+    ${CMAKE_DL_LIBS}  # For dlopen/dlsym on Unix systems
 )
 
 add_custom_target(copy_assets ALL
@@ -50,5 +82,19 @@ if(WIN32)
     target_link_libraries(Silhouette PRIVATE
         winmm
         gdi32
-)
+        opengl32
+    )
+elseif(APPLE)
+    target_link_libraries(Silhouette PRIVATE
+        "-framework Cocoa"
+        "-framework OpenGL"
+        "-framework IOKit"
+    )
+else()  # Linux/Unix
+    target_link_libraries(Silhouette PRIVATE
+        GL
+        X11
+        pthread
+        dl
+    )
 endif()

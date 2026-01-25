@@ -74,6 +74,19 @@ bool App::init()
     }*/
 
     glfwMakeContextCurrent(window);
+
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "Failed to initialize GLAD" << std::endl;
+        glfwTerminate();
+        return false;
+    }
+
+    // Verify OpenGL is loaded
+    std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << std::endl;
+    std::cout << "OpenGL Vendor: " << glGetString(GL_VENDOR) << std::endl;
+
+
     glfwSwapInterval(0);
     glEnable(GL_TEXTURE_2D);
 
@@ -82,7 +95,7 @@ bool App::init()
 
     
 
-    dec.open("assets/testVideos/test4.mp4");
+    dec.open("D:/Silhouette/assets/test5.mkv");
     
     dec.setFrameFetcher(&vp);
     dec.setCacheState(&vp);
@@ -93,6 +106,7 @@ bool App::init()
     scrb.init(&vp);
     vp.open();
     vp.setSeekController(&dec);
+    yuvRenderer.init(vp.width(), vp.height());
 
     keyframePts = vp.KeyFrames;
     return true;
@@ -174,8 +188,8 @@ void App::run()
 
            
             if (mouseY >= 0.0f && mouseY <= (height / 8.0f)) {
-                float cursorNorm = static_cast<float>(input.mouseX()) / width;
-                float timelineNorm = scrb.offset + cursorNorm / scrb.zoomFactor;
+                float cursorNorm = static_cast<float>(input.mouseX()) / vp.width();
+                float timelineNorm = scrb.interpolatedOffset + cursorNorm / scrb.zoomFactor;
 
                
                 if (timelineNorm < 0.0f) timelineNorm = 0.0f;
@@ -226,37 +240,43 @@ void App::run()
 
         if (input.fPressed()) {
             
-            vp.printCacheTimestamps();
+            //vp.printCacheTimestamps();
+            dec.benchmark();
         }
 
-        if (playState) {
-            dec.decodeOneFrame();
+        if (input.kPressed()) {
+            //dec.decodeOneFrame();
+            useYUVRenderer = !useYUVRenderer;
         }
 
-        
-
-        GLuint tex = vp.texture();
-        if (tex != 0) {
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0.0, width, 0.0, height, -1.0, 1.0);
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
-            glBindTexture(GL_TEXTURE_2D, tex);
-
-            float x0, x1, y0, y1;
-            camera.computeImageRect(width, height, vp.width(), vp.height(), x0, x1, y0, y1);
-
-            glBegin(GL_QUADS);
-            glTexCoord2f(0.0f, 1.0f); glVertex2f(x0, y0);
-            glTexCoord2f(1.0f, 1.0f); glVertex2f(x1, y0);
-            glTexCoord2f(1.0f, 0.0f); glVertex2f(x1, y1);
-            glTexCoord2f(0.0f, 0.0f); glVertex2f(x0, y1);
-            glEnd();
-
-            glBindTexture(GL_TEXTURE_2D, 0);
+        if (useYUVRenderer) {
+            // NEW: Use YUV renderer
+            yuvRenderer.renderFullscreen();
         }
+        else {
 
+            GLuint tex = vp.texture();
+            if (tex != 0) {
+                glMatrixMode(GL_PROJECTION);
+                glLoadIdentity();
+                glOrtho(0.0, width, 0.0, height, -1.0, 1.0);
+                glMatrixMode(GL_MODELVIEW);
+                glLoadIdentity();
+                glBindTexture(GL_TEXTURE_2D, tex);
+
+                float x0, x1, y0, y1;
+                camera.computeImageRect(width, height, vp.width(), vp.height(), x0, x1, y0, y1);
+
+                glBegin(GL_QUADS);
+                glTexCoord2f(0.0f, 1.0f); glVertex2f(x0, y0);
+                glTexCoord2f(1.0f, 1.0f); glVertex2f(x1, y0);
+                glTexCoord2f(1.0f, 0.0f); glVertex2f(x1, y1);
+                glTexCoord2f(0.0f, 0.0f); glVertex2f(x0, y1);
+                glEnd();
+
+                glBindTexture(GL_TEXTURE_2D, 0);
+            }
+        }
         
         scrb.draw();
 
@@ -296,18 +316,4 @@ void App::shutdown()
 
 
 
-bool App::loadTestImage(const char* path)
-{
-    int channels = 0;
-    stbi_set_flip_vertically_on_load(1);
 
-    unsigned char* data = stbi_load(path, &imageWidth, &imageHeight, &channels, 4);
-    if (!data) {
-        std::cerr << "Failed to load image: " << path << "\n";
-        return false;
-    }
-
-    std::cout << "loaded image: " << path << "(" << imageWidth << "x" << imageHeight << ", 4 channels)\n";
-    stbi_image_free(data);
-    return true;
-}

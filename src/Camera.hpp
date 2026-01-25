@@ -1,10 +1,9 @@
 #pragma once
 #include <iostream>
+#define GLFW_INCLUDE_NONE
+#include<glad/glad.h>
 #include <GLFW/glfw3.h>
-#if defined(_WIN32)
-#include<Windows.h>
-#endif
-#include<gl/GL.h>
+
 
 class Camera {
 public:
