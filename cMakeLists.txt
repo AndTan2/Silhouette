@@ -36,13 +36,13 @@ target_include_directories(glad PUBLIC
 add_executable(Silhouette
     src/main.cpp
     src/App.cpp
-    
     src/Input.cpp 
     src/Camera.cpp 
     src/VideoPlayer.cpp 
     src/Decoder.cpp 
     src/Scrubber.cpp 
     src/YUVRenderer.cpp
+    src/shaderClass.cpp
 )
 
 

@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include "YUVRenderer.hpp"
 #include "DATA_TYPES.hpp"
 #include "IFrameFetcher.hpp"
 
@@ -102,7 +103,7 @@ public:
 
     int64_t secondsToPts(double t) const;
     double ptsToSeconds(int64_t pts) const;
-  
+    void render(float x0, float x1, float y0, float y1, int screenWidth, int screenHeight);
 
     void open();
     std::vector<int> KeyFrames;
@@ -124,7 +125,8 @@ private:
 
     std::atomic<double> currentCacheTime = 0.0;
   
-
+    YUVRenderer yuvRenderer;
+    bool rendererInitialized = false;
 
     int currentCacheIndex = 0;
     double videoTimeBase = 0;

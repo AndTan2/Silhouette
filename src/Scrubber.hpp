@@ -1,45 +1,48 @@
 #pragma once
+
+#include <glad/glad.h>
 #include "VideoPlayer.hpp"
+#include "shaderClass.hpp"
+#include <vector>
 
 
-
-
-class Scrubber
-{
+class Scrubber {
 public:
+    Scrubber();
+    ~Scrubber();
+    void init(VideoPlayer* videoPlayer);
+    void draw(int windowWidth, int windowHeight);
+    void zoom(float scrollAmount, float mouseX, float windowWidth);
+    void addPanDelta(float dx);
+    void update(float dt);
 
-	Scrubber();
+    float interpolatedOffset = 0.0f;
+    float zoomFactor = 1.0f;
 
-
-
-	void init(VideoPlayer* videoPlayer);
-
-	void zoom(float scrollAmount, float mouseX, float windowWidth);
-
-	void draw();
-
-	void addPanDelta(float dx);
-
-	void update(float dt);
-
-
-	float zoomFactor = 1.0f;
-	float offset = 0.0f;
-	float interpolatedOffset = 0.0f;
 private:
+    VideoPlayer* vp = nullptr;
+    float scrubberY0 = 0.0f;
+    float minZoom = 1.0f;
+    float maxZoom = 100.0f;
+    float offset = 0.0f;
+    
+    bool panning = false;
 
-	VideoPlayer* vp;
+    // Modern OpenGL
+    GLuint VAO = 0;
+    GLuint VBO = 0;
+    GLuint EBO = 0;
+    Shader* shader = nullptr;
+    GLint colorUniformLoc = -1;
+    GLint transformUniformLoc = -1;
+    int currentWindowWidth;
+    int currentWindowHeight;
 
-	float scrubberY0 = 0.0f;
-	float scrubberY1 = 0.0f;
+    void createGeometry();
+    void renderQuad(float x, float y, float width, float height, float r, float g, float b, int windowWidth, int windowHeight);
+    float screenXToTimeline(float screenX, int windowWidth);
+    float timelineToX(float t);
 
-
-	const float minZoom = 1.0f;
-	const float maxZoom = 10.0f;
-
-
-	bool panning = false;
-
-
-
+    std::vector<float> vertices;
+    std::vector<unsigned int> indices;
 };

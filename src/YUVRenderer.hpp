@@ -2,7 +2,8 @@
 
 #include <iostream>
 #include <cassert>
-#include<vector>
+#include <vector>
+#include "shaderClass.hpp"
 #define GLFW_INCLUDE_NONE
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -23,22 +24,20 @@ public:
         const std::vector<uint8_t>& vPlane);
 
    
-    void uploadRGBA(const std::vector<uint8_t>& rgbaData);
-
- 
-    void render(float x0, float x1, float y0, float y1);  
-    void renderFullscreen();  
-
-    
+    void uploadRGBA(const std::vector<uint8_t>& rgbaData);    
     void useYUV(bool useYUV) { renderingYUV = useYUV; }
+    void renderRect(float x0, float x1, float y0, float y1, int screenWidth, int screenHeight);
 
 private:
    
-    GLuint compileShader(GLenum type, const char* source);
-    GLuint createShaderProgram();
+    
     void createFullscreenQuad();
 
-    
+    GLint yTextureLoc;
+    GLint uTextureLoc;
+    GLint vTextureLoc;
+    GLint rgbaTextureLoc;
+
     GLuint rgbaTexture = 0;
     GLuint yTexture = 0, uTexture = 0, vTexture = 0;
 
@@ -53,5 +52,5 @@ private:
     int width = 0;
     int height = 0;
     bool initialized = false;
-    bool renderingYUV = true;  
+    bool renderingYUV = false;  
 };

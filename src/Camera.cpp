@@ -21,11 +21,12 @@ void Camera::beginFrame(double dt)
 void Camera::addPanDelta(float dx, float dy)
 {
 	_panX += dx;
-	_panY -= dy;
+	_panY += dy;
 }
 
 void Camera::onScroll(float scrollY, float mouseX, float mouseY, int screenWidth, int screenHeight)
 {
+
 	if (scrollY != 0.0f)
 	{
 		float oldZoom = _zoom;
@@ -43,9 +44,8 @@ void Camera::onScroll(float scrollY, float mouseX, float mouseY, int screenWidth
 			float cy = 0.5f * screenHeight;
 
 
-			float vx = mouseX - cx - _panX;
-			float vy = mouseY - cy - _panY;
-
+			float vx = mouseX - (cx + _panX);
+			float vy = (screenHeight - mouseY) - (cy + _panY);
 
 			_panX += (1.0f - scale) * vx;
 			_panY += (1.0f - scale) * vy;

@@ -32,7 +32,7 @@ private:
     VideoPlayer vp;
     Decoder dec;
     Scrubber scrb;
-    YUVRenderer yuvRenderer;
+    
 
     bool useYUVRenderer = false;
 

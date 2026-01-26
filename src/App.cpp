@@ -106,7 +106,7 @@ bool App::init()
     scrb.init(&vp);
     vp.open();
     vp.setSeekController(&dec);
-    yuvRenderer.init(vp.width(), vp.height());
+    
 
     keyframePts = vp.KeyFrames;
     return true;
@@ -168,6 +168,7 @@ void App::run()
             }
             if (mouseY >= 0.0f && mouseY <= (height / 8))
             {
+               
                 scrb.zoom((float)input.scrollY(), (float)mx, (float)width);
             }
         }
@@ -188,7 +189,7 @@ void App::run()
 
            
             if (mouseY >= 0.0f && mouseY <= (height / 8.0f)) {
-                float cursorNorm = static_cast<float>(input.mouseX()) / vp.width();
+                float cursorNorm = static_cast<float>(input.mouseX()) / width;
                 float timelineNorm = scrb.interpolatedOffset + cursorNorm / scrb.zoomFactor;
 
                
@@ -249,49 +250,30 @@ void App::run()
             useYUVRenderer = !useYUVRenderer;
         }
 
-        if (useYUVRenderer) {
-            // NEW: Use YUV renderer
-            yuvRenderer.renderFullscreen();
-        }
-        else {
 
-            GLuint tex = vp.texture();
-            if (tex != 0) {
-                glMatrixMode(GL_PROJECTION);
-                glLoadIdentity();
-                glOrtho(0.0, width, 0.0, height, -1.0, 1.0);
-                glMatrixMode(GL_MODELVIEW);
-                glLoadIdentity();
-                glBindTexture(GL_TEXTURE_2D, tex);
-
-                float x0, x1, y0, y1;
-                camera.computeImageRect(width, height, vp.width(), vp.height(), x0, x1, y0, y1);
-
-                glBegin(GL_QUADS);
-                glTexCoord2f(0.0f, 1.0f); glVertex2f(x0, y0);
-                glTexCoord2f(1.0f, 1.0f); glVertex2f(x1, y0);
-                glTexCoord2f(1.0f, 0.0f); glVertex2f(x1, y1);
-                glTexCoord2f(0.0f, 0.0f); glVertex2f(x0, y1);
-                glEnd();
-
-                glBindTexture(GL_TEXTURE_2D, 0);
-            }
-        }
+        //scene rendering(frame only)
+        float x0, x1, y0, y1;
+        camera.computeImageRect(width, height, vp.width(), vp.height(), x0, x1, y0, y1);
+        vp.render(x0, x1, y0, y1, width, height);
+           
         
-        scrb.draw();
+        
+        scrb.draw(width, height);
 
         glfwSwapBuffers(window);
-
+        
         const double targetFPS = 360.0;
         const double targetFrameTime = 1.0 / targetFPS;
 
         auto frameEnd = std::chrono::high_resolution_clock::now();
         double frameDuration = std::chrono::duration<double>(frameEnd - frameStart).count();
-
+        
         if (frameDuration < targetFrameTime) {
             double sleepTime = targetFrameTime - frameDuration;
             std::this_thread::sleep_for(std::chrono::duration<double>(sleepTime));
+            
         }
+       
     }
 
     std::cout << "[App::run]  main loop finished.\n";

@@ -16,17 +16,11 @@ VideoPlayer::~VideoPlayer() {
 
 void VideoPlayer::open()
 {
-    glGenTextures(1, &videoTexture);
-    glBindTexture(GL_TEXTURE_2D, videoTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-    glTexImage2D(
-        GL_TEXTURE_2D, 0, GL_RGBA, videoWidth, videoHeight,
-        0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr
-    );
-    glBindTexture(GL_TEXTURE_2D, 0);
+    if (!yuvRenderer.init(videoWidth, videoHeight)) {
+        std::cerr << "Failed to initialize YUVRenderer\n";
+        return;
+    }
+    rendererInitialized = true;
     std::cout << "Video texture size: " << videoWidth << "x" << videoHeight << "\n";
 
 
@@ -156,12 +150,7 @@ bool VideoPlayer::displayCachedFrame(double t)
 
     const CachedFrame& cf = frameCache[idx];
 
-    glBindTexture(GL_TEXTURE_2D, videoTexture);
-    glTexSubImage2D(
-        GL_TEXTURE_2D, 0, 0, 0, cf.width, cf.height,
-        GL_RGBA, GL_UNSIGNED_BYTE, cf.rgbaFrameData.data()
-    );
-    glBindTexture(GL_TEXTURE_2D, 0);
+    yuvRenderer.uploadRGBA(cf.rgbaFrameData);
 
     currentCacheTime = ptsToSeconds(cf.pts);
     currentCacheIndex = idx;
@@ -170,6 +159,10 @@ bool VideoPlayer::displayCachedFrame(double t)
     return true;
 }
 
+void VideoPlayer::render(float x0, float x1, float y0, float y1, int screenWidth, int screenHeight)
+{
+    yuvRenderer.renderRect(x0, x1, y0, y1, screenWidth, screenHeight);
+}
 
 bool VideoPlayer::isTimeInsideCache(double t) const
 {
