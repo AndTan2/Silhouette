@@ -285,10 +285,10 @@ bool Decoder::decodeOneFrame()
                 std::cout << " pts: N/A\n";
             }
 
-            if (!convertFrameToRGBA()) {
+            /*if (!convertFrameToRGBA()) {
                 std::cerr << "Failed to convert frame to RGBA.\n";
                 return false;
-            }
+            }                                            ////rgba frame creation
 
             int64_t pts2 = frame->best_effort_timestamp;
             if (pts2 == AV_NOPTS_VALUE) pts2 = frame->pts;
@@ -300,12 +300,46 @@ bool Decoder::decodeOneFrame()
                     videoHeight,
                     pts2,
                     std::vector<uint8_t>(rgbaPlanes[0], rgbaPlanes[0] + videoWidth * videoHeight * 4)
+                );*/
+
+            if (frame->format != AV_PIX_FMT_YUV420P) {
+                std::cerr << "Frame is not in YUV420P format.\n";
+                return false;
+            }
+
+            int64_t pts2 = frame->best_effort_timestamp;
+            if (pts2 == AV_NOPTS_VALUE) pts2 = frame->pts;
+            if (pts2 != AV_NOPTS_VALUE) {
+                // Calculate plane sizes
+                int ySize = videoWidth * videoHeight;
+                int uvSize = (videoWidth / 2) * (videoHeight / 2);
+
+                // Create vectors for each plane
+                std::vector<uint8_t> yPlane(ySize);
+                std::vector<uint8_t> uPlane(uvSize);
+                std::vector<uint8_t> vPlane(uvSize);
+
+                // Copy Y plane
+                memcpy(yPlane.data(), frame->data[0], ySize);
+
+                // Copy U and V planes
+                memcpy(uPlane.data(), frame->data[1], uvSize);
+                memcpy(vPlane.data(), frame->data[2], uvSize);
+
+                // Create YUV frame
+                CachedFrame cachedFrame(
+                    videoWidth,
+                    videoHeight,
+                    pts2,
+                    std::move(yPlane),
+                    std::move(uPlane),
+                    std::move(vPlane)
                 );
 
-
                 if (frameFetcher) {
-                    frameFetcher->pushFrame(frame);
+                    frameFetcher->pushFrame(cachedFrame);
                 }
+
 
 
                 return true;

@@ -31,7 +31,7 @@ public:
     
     void pushFrame(const CachedFrame& frame) override {
         std::lock_guard<std::mutex> lock(cacheMutex);
-        insertFrameSorted(frame.pts, frame.rgbaFrameData);
+        insertFrameSorted(frame.pts, std::move(frame.yPlane), std::move(frame.uPlane), std::move(frame.vPlane));
         if (displayFramesAsLoad)
         {
             displayCachedFrame(displayCachedFrame(frameCache.size() - 2));
@@ -137,7 +137,13 @@ private:
     bool displayFramesAsLoad = false;
 
     bool hasFrameWithPTS(int64_t pts) const;
-    void insertFrameSorted(int64_t pts, std::vector<uint8_t> rgbaFrameData);
+
+    void insertFrameSorted(
+        int64_t pts,
+        std::vector<uint8_t> yPlane,    
+        std::vector<uint8_t> uPlane,     
+        std::vector<uint8_t> vPlane);   
+    
 
     
     

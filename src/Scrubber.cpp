@@ -7,6 +7,7 @@
 Scrubber::Scrubber()
 {
     vp = nullptr;
+    
 }
 
 Scrubber::~Scrubber() {
@@ -19,6 +20,9 @@ Scrubber::~Scrubber() {
 void Scrubber::init(VideoPlayer* videoPlayer)
 {
     vp = videoPlayer;
+
+    maxZoom = vp->durationSeconds() * vp->fps() / numFramesAtMaxZoom; 
+ 
     scrubberY0 = 0.0f;
 
     // Create shader
@@ -166,14 +170,53 @@ void Scrubber::draw(int windowWidth, int windowHeight) {
 
     // 2. Draw cache markers (green)
     if (!vp->frameCache.empty() && vp->durationSeconds() > 0.0) {
+        // Maximum width based on 16:9 aspect of scrubber height
+        const float MAX_WIDTH_BY_ASPECT = scrubberHeight * (16.0f / 9.0f);
+        const float DESIRED_MAX_WIDTH = 218.0f;
+        const float ABSOLUTE_MAX_WIDTH = std::min(DESIRED_MAX_WIDTH, MAX_WIDTH_BY_ASPECT);
+
+        // Scale with zoom
+        float markerWidth = ABSOLUTE_MAX_WIDTH * (zoomFactor / maxZoom);
+        markerWidth = std::min(markerWidth, ABSOLUTE_MAX_WIDTH);
+        markerWidth = std::max(1.0f, markerWidth);
+
+        float markerHeight = scrubberHeight;
+        float markerY = 0.0f;
+
+        // Get current playhead time to find which frame is selected
+        float currentTime = vp->currentCacheTimeSeconds();
+
+        // Find the frame closest to current time
+        const CachedFrame* selectedFrame = nullptr;
+        float minTimeDiff = std::numeric_limits<float>::max();
+
+        for (const auto& frame : vp->frameCache) {
+            float frameTime = vp->ptsToSeconds(frame.pts);
+            float timeDiff = std::abs(frameTime - currentTime);
+
+            if (timeDiff < minTimeDiff) {
+                minTimeDiff = timeDiff;
+                selectedFrame = &frame;
+            }
+        }
+
+        // Now draw all frames, coloring selected one white
         for (const auto& frame : vp->frameCache) {
             float timelinePos = vp->ptsToSeconds(frame.pts) / vp->durationSeconds();
             float screenX = timelineToScreenX(timelinePos);
 
-            if (screenX + 1.0f < 0.0f || screenX - 1.0f > windowWidth) continue;
+            // Choose color: white for selected frame, green for others
+            float r, g, b;
+            if (&frame == selectedFrame && minTimeDiff < 0.1f) { // Small threshold
+                r = 1.0f; g = 1.0f; b = 1.0f; // White
+            }
+            else {
+                r = 0.0f; g = 1.0f; b = 0.0f; // Green
+            }
 
-            renderQuad(screenX - 1.0f, 0.0f, 2.0f, scrubberHeight,
-                0.0f, 1.0f, 0.0f, windowWidth, windowHeight);
+            renderQuad(screenX - markerWidth / 2, markerY,
+                markerWidth, markerHeight,
+                r, g, b, windowWidth, windowHeight);
         }
     }
 

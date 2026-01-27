@@ -1,28 +1,28 @@
 #version 330 core
-        in vec2 texCoord;
-        out vec4 FragColor;
-        
-        uniform sampler2D yTexture;
-        uniform sampler2D uTexture;
-        uniform sampler2D vTexture;
-        
-        void main() {
-            // Sample YUV textures
-            float y = texture(yTexture, texCoord).r;
-            vec2 uvCoord = texCoord * 0.5;  // UV planes are half resolution
-            float u = texture(uTexture, uvCoord).r - 0.5;
-            float v = texture(vTexture, uvCoord).r - 0.5;
-            
-            // YUV to RGB conversion (BT.601)
-            float r = y + 1.402 * v;
-            float g = y - 0.344136 * u - 0.714136 * v;
-            float b = y + 1.772 * u;
-            
-            // Clamp and output
-            FragColor = vec4(
-                clamp(r, 0.0, 1.0),
-                clamp(g, 0.0, 1.0),
-                clamp(b, 0.0, 1.0),
-                1.0
-            );
-        }
+in vec2 texCoord;
+out vec4 FragColor;
+
+uniform sampler2D yTexture;
+uniform sampler2D uTexture;
+uniform sampler2D vTexture;
+
+void main() {
+    float y = texture(yTexture, texCoord).r;
+    float u = texture(uTexture, texCoord).r;
+    float v = texture(vTexture, texCoord).r;
+
+    // Limited range expansion
+    y = (y - 16.0/255.0)  * (255.0/219.0);
+    u = (u - 128.0/255.0) * (255.0/224.0);
+    v = (v - 128.0/255.0) * (255.0/224.0);
+
+    vec3 rgb;
+    rgb.r = y + 1.5748 * v;
+    rgb.g = y - 0.1873 * u - 0.4681 * v;
+    rgb.b = y + 1.8556 * u;
+
+    // Optional if not using sRGB framebuffer
+    // rgb = pow(rgb, vec3(1.0 / 2.2));
+
+    FragColor = vec4(clamp(rgb, 0.0, 1.0), 1.0);
+}

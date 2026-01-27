@@ -23,7 +23,7 @@ private:
     VideoPlayer* vp = nullptr;
     float scrubberY0 = 0.0f;
     float minZoom = 1.0f;
-    float maxZoom = 100.0f;
+    float maxZoom = 5000.0f;
     float offset = 0.0f;
     
     bool panning = false;
@@ -37,6 +37,8 @@ private:
     GLint transformUniformLoc = -1;
     int currentWindowWidth;
     int currentWindowHeight;
+
+    int numFramesAtMaxZoom = 5; //sets the number of frames visible at max zoom
 
     void createGeometry();
     void renderQuad(float x, float y, float width, float height, float r, float g, float b, int windowWidth, int windowHeight);

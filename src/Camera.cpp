@@ -35,8 +35,8 @@ void Camera::onScroll(float scrollY, float mouseX, float mouseY, int screenWidth
 		if (factor > 0.0f)
 		{
 			_zoom *= factor;
-			if (_zoom < 0.1f) _zoom = 0.1f;
-			if (_zoom > 20.0f) _zoom = 20.0f;
+			if (_zoom < minZoom) _zoom = minZoom;
+			if (_zoom > maxZoom) _zoom = maxZoom;
 
 			float scale = _zoom / oldZoom;
 

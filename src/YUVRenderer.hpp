@@ -52,5 +52,5 @@ private:
     int width = 0;
     int height = 0;
     bool initialized = false;
-    bool renderingYUV = false;  
+    bool renderingYUV = true;  
 };

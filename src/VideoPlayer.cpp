@@ -43,7 +43,7 @@ void VideoPlayer::clearCache()
 
     std::cout << "Cache cleared\n";
     std::cout << "cleared " << numFrames << " frames from cache ("
-        << numFrames * videoHeight * videoWidth / (256 * 1024) << " Mb)\n";
+        << numFrames * videoHeight * videoWidth * 1.5f / (1024 * 1024) << " Mb)\n";
 }
 
 void VideoPlayer::printCacheTimestamps() const
@@ -99,30 +99,24 @@ int VideoPlayer::findCachedFrameIndexBySeconds(double t) const
 
     int64_t targetPts = secondsToPts(t);
 
-  
-    int64_t framePtsTolerance = secondsToPts(0.5 / fps());
-
- 
-    if (targetPts < frameCache.front().pts - framePtsTolerance)
-        return 0; 
-    if (targetPts > frameCache.back().pts + framePtsTolerance)
-        return static_cast<int>(frameCache.size() - 1); 
-
-  
-    auto it = std::upper_bound(
+    // Binary search for lower bound
+    auto it = std::lower_bound(
         frameCache.begin(), frameCache.end(), targetPts,
-        [](int64_t value, const CachedFrame& f) { return value < f.pts; }
+        [](const CachedFrame& f, int64_t value) { return f.pts < value; }
     );
 
+    // Handle edge cases
+    if (it == frameCache.begin()) return 0;
+    if (it == frameCache.end()) return static_cast<int>(frameCache.size() - 1);
 
-    if (it != frameCache.begin()) --it;
-
-
-    if (std::abs(targetPts - it->pts) <= framePtsTolerance)
+    // Compare with previous frame to find closest
+    auto prev = it - 1;
+    if (std::abs(prev->pts - targetPts) <= std::abs(it->pts - targetPts)) {
+        return static_cast<int>(std::distance(frameCache.begin(), prev));
+    }
+    else {
         return static_cast<int>(std::distance(frameCache.begin(), it));
-
-
-    return static_cast<int>(std::distance(frameCache.begin(), it));
+    }
 }
 
 
@@ -150,7 +144,8 @@ bool VideoPlayer::displayCachedFrame(double t)
 
     const CachedFrame& cf = frameCache[idx];
 
-    yuvRenderer.uploadRGBA(cf.rgbaFrameData);
+    yuvRenderer.uploadFrame(cf.yPlane, cf.uPlane, cf.vPlane);
+//    yuvRenderer.uploadRGBA(cf.rgbaFrameData);
 
     currentCacheTime = ptsToSeconds(cf.pts);
     currentCacheIndex = idx;
@@ -170,17 +165,28 @@ bool VideoPlayer::isTimeInsideCache(double t) const
 
     int64_t targetPts = secondsToPts(t);
 
-    for (size_t i = 0; i < frameCache.size(); ++i) {
-        int64_t frameStart = frameCache[i].pts;
-        int64_t frameEnd = frameStart + secondsToPts(1.0 / fps());
-        if (targetPts >= frameStart && targetPts < frameEnd) {
-            //std::cout << "CACHE FOUND!!!\n";
-            return true;
+    // Find nearest frame
+    const CachedFrame* nearest = nullptr;
+    int64_t minDiff = std::numeric_limits<int64_t>::max();
+
+    for (const auto& frame : frameCache) {
+        int64_t diff = std::abs(frame.pts - targetPts);
+        if (diff < minDiff) {
+            minDiff = diff;
+            nearest = &frame;
         }
     }
 
-    std::cout << "click not inside cache\n";
-    return false;
+    // Check if within reasonable range (e.g., half a frame duration)
+    int64_t halfFrameDuration = secondsToPts(0.8 / fps());
+    bool found = (minDiff <= halfFrameDuration);
+
+    if (!found) {
+        std::cout << "Time " << t << " not inside cache (diff: "
+            << minDiff << ", max allowed: " << halfFrameDuration << ")\n";
+    }
+
+    return found;
 }
 
 
@@ -196,18 +202,31 @@ bool VideoPlayer::isTimeInsideCache(double t) const
 //    return pts * getTimeBase();
 //}
 
-void VideoPlayer::insertFrameSorted(int64_t pts, std::vector<uint8_t> rgbaFrameData)
+void VideoPlayer::insertFrameSorted(
+    int64_t pts,
+    std::vector<uint8_t> yPlane,    // Pass by value
+    std::vector<uint8_t> uPlane,    // Pass by value  
+    std::vector<uint8_t> vPlane)    // Pass by value
 {
     auto it = std::lower_bound(
         frameCache.begin(), frameCache.end(), pts,
         [](const CachedFrame& f, int64_t p) { return f.pts < p; }
     );
 
+    
     if (it != frameCache.end() && it->pts == pts) {
-        return;
+        return; 
     }
 
-    frameCache.insert(it, CachedFrame(videoWidth, videoHeight, pts, std::move(rgbaFrameData)));
+    
+    frameCache.insert(it, CachedFrame(
+        videoWidth,
+        videoHeight,
+        pts,
+        std::move(yPlane),
+        std::move(uPlane),
+        std::move(vPlane)
+    ));
 }
 
 

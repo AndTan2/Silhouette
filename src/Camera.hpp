@@ -22,8 +22,8 @@ private:
 	float _interpolatedPanY = 0.0f;
 	bool _panning = false;
 
-	float _minZoom = 0.1f;
-	float _maxZoom = 20.0f;
+	float minZoom = 1.0f;
+	float maxZoom = 20.0f;
 
 	float _smoothK = 50.0f;
 	float _zoomFullView = 2.0f;
