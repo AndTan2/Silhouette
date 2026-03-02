@@ -311,38 +311,10 @@ bool Decoder::decodeOneFrame()
             int64_t pts2 = frame->best_effort_timestamp;
             if (pts2 == AV_NOPTS_VALUE) pts2 = frame->pts;
             if (pts2 != AV_NOPTS_VALUE) {
-                // Calculate plane sizes
-                int ySize = videoWidth * videoHeight;
-                int uvSize = (videoWidth / 2) * (videoHeight / 2);
-
-                // Create vectors for each plane
-                std::vector<uint8_t> yPlane(ySize);
-                std::vector<uint8_t> uPlane(uvSize);
-                std::vector<uint8_t> vPlane(uvSize);
-
-                // Copy Y plane
-                memcpy(yPlane.data(), frame->data[0], ySize);
-
-                // Copy U and V planes
-                memcpy(uPlane.data(), frame->data[1], uvSize);
-                memcpy(vPlane.data(), frame->data[2], uvSize);
-
-                // Create YUV frame
-                CachedFrame cachedFrame(
-                    videoWidth,
-                    videoHeight,
-                    pts2,
-                    std::move(yPlane),
-                    std::move(uPlane),
-                    std::move(vPlane)
-                );
-
+                CachedFrame cachedFrame(videoWidth, videoHeight, pts2, frame);
                 if (frameFetcher) {
-                    frameFetcher->pushFrame(cachedFrame);
+                    frameFetcher->pushFrame(std::move(cachedFrame));
                 }
-
-
-
                 return true;
             }
         }

@@ -80,23 +80,28 @@ bool YUVRenderer::init(int videoWidth, int videoHeight) {
     return true;
 }
 
-void YUVRenderer::uploadFrame(const std::vector<uint8_t>& yPlane,
-    const std::vector<uint8_t>& uPlane,
-    const std::vector<uint8_t>& vPlane) {
+void YUVRenderer::uploadFrame(
+    const uint8_t* yData, const uint8_t* uData, const uint8_t* vData,
+    int yStride, int uvStride,
+    int frameWidth, int frameHeight)
+{
     if (!initialized) return;
 
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, yStride);  // handle stride padding
     glBindTexture(GL_TEXTURE_2D, yTexture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height,
-        GL_RED, GL_UNSIGNED_BYTE, yPlane.data());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frameWidth, frameHeight,
+        GL_RED, GL_UNSIGNED_BYTE, yData);
 
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, uvStride);
     glBindTexture(GL_TEXTURE_2D, uTexture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width / 2, height / 2,
-        GL_RED, GL_UNSIGNED_BYTE, uPlane.data());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frameWidth / 2, frameHeight / 2,
+        GL_RED, GL_UNSIGNED_BYTE, uData);
 
     glBindTexture(GL_TEXTURE_2D, vTexture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width / 2, height / 2,
-        GL_RED, GL_UNSIGNED_BYTE, vPlane.data());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, frameWidth / 2, frameHeight / 2,
+        GL_RED, GL_UNSIGNED_BYTE, vData);
 
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);  // reset to default
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 

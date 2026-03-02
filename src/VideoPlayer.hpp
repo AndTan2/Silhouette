@@ -29,12 +29,11 @@ public:
 
 
     
-    void pushFrame(const CachedFrame& frame) override {
+    void pushFrame(CachedFrame frame) override {  // take by value (move)
         std::lock_guard<std::mutex> lock(cacheMutex);
-        insertFrameSorted(frame.pts, std::move(frame.yPlane), std::move(frame.uPlane), std::move(frame.vPlane));
-        if (displayFramesAsLoad)
-        {
-            displayCachedFrame(displayCachedFrame(frameCache.size() - 2));
+        insertFrameSorted(std::move(frame));
+        if (displayFramesAsLoad) {
+            displayCachedFrame(currentCacheTime);
         }
     }
 
@@ -143,11 +142,7 @@ private:
 
     bool hasFrameWithPTS(int64_t pts) const;
 
-    void insertFrameSorted(
-        int64_t pts,
-        std::vector<uint8_t> yPlane,    
-        std::vector<uint8_t> uPlane,     
-        std::vector<uint8_t> vPlane);   
+    void insertFrameSorted(CachedFrame frame);
     
 
     

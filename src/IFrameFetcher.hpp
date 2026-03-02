@@ -6,7 +6,7 @@
 class IFrameFetcher {
 public:
     virtual ~IFrameFetcher() = default;
-    virtual void pushFrame(const CachedFrame& frame) = 0;
+    virtual void pushFrame(CachedFrame frame) = 0; 
     virtual void setVideoProperties(int width, int height, double fps, double duration, double timeBase,std::vector<int> Kframes) = 0;
     virtual void onSeekFinished(uint64_t seekToken) = 0;
     mutable std::mutex cacheMutex;

@@ -19,9 +19,8 @@ public:
     bool init(int videoWidth, int videoHeight);
 
     
-    void uploadFrame(const std::vector<uint8_t>& yPlane,
-        const std::vector<uint8_t>& uPlane,
-        const std::vector<uint8_t>& vPlane);
+    void uploadFrame(const uint8_t* yData, const uint8_t* uData, const uint8_t* vData,
+        int yStride, int uvStride, int frameWidth, int frameHeight);
 
    
     void uploadRGBA(const std::vector<uint8_t>& rgbaData);    

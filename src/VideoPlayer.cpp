@@ -144,8 +144,9 @@ bool VideoPlayer::displayCachedFrame(double t)
 
     const CachedFrame& cf = frameCache[idx];
 
-    yuvRenderer.uploadFrame(cf.yPlane, cf.uPlane, cf.vPlane);
-//    yuvRenderer.uploadRGBA(cf.rgbaFrameData);
+    yuvRenderer.uploadFrame(cf.yData(), cf.uData(), cf.vData(),
+        cf.yStride(), cf.uStride(),
+        cf.width, cf.height);
 
     currentCacheTime = ptsToSeconds(cf.pts);
     currentCacheIndex = idx;
@@ -202,33 +203,18 @@ bool VideoPlayer::isTimeInsideCache(double t) const
 //    return pts * getTimeBase();
 //}
 
-void VideoPlayer::insertFrameSorted(
-    int64_t pts,
-    std::vector<uint8_t> yPlane,    // Pass by value
-    std::vector<uint8_t> uPlane,    // Pass by value  
-    std::vector<uint8_t> vPlane)    // Pass by value
+void VideoPlayer::insertFrameSorted(CachedFrame frame)
 {
+    int64_t pts = frame.pts;
     auto it = std::lower_bound(
         frameCache.begin(), frameCache.end(), pts,
         [](const CachedFrame& f, int64_t p) { return f.pts < p; }
     );
 
-    
-    if (it != frameCache.end() && it->pts == pts) {
-        return; 
-    }
+    if (it != frameCache.end() && it->pts == pts) return; // duplicate
 
-    
-    frameCache.insert(it, CachedFrame(
-        videoWidth,
-        videoHeight,
-        pts,
-        std::move(yPlane),
-        std::move(uPlane),
-        std::move(vPlane)
-    ));
+    frameCache.insert(it, std::move(frame));
 }
-
 
 
 
