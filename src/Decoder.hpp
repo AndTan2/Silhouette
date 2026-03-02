@@ -64,7 +64,7 @@ public:
 
 	double durationSeconds() const { return videoDuration; }
 
-	double currentTimeSeconds() const { return currentTime; }
+	double currentTimeSeconds() const { return currentDecoderTime; }
 
 	void ensureSufficintFrames();
 
@@ -102,10 +102,11 @@ private:
 
 	double videoFPS = 30.0;
 	double videoDuration = 0.0;
-	double currentTime = 0.0;
+	double currentDecoderTime = 0.0;
 
 	bool convertFrameToRGBA();
-	bool ensureFrameCache(double secondsAhead);
+	bool ensureCacheAhead(double secondsAhead);
+	bool ensureCacheBehind(double tolerance);
 	std::vector<uint8_t> copyRGBA(uint8_t* src);
 
 	std::thread decodeThread;

@@ -25,7 +25,7 @@ private:
     float minZoom = 1.0f;
     float maxZoom = 5000.0f;
     float offset = 0.0f;
-    
+
     bool panning = false;
 
     // Modern OpenGL
@@ -38,7 +38,7 @@ private:
     int currentWindowWidth;
     int currentWindowHeight;
 
-    int numFramesAtMaxZoom = 5; //sets the number of frames visible at max zoom
+    int numFramesAtMaxZoom = 5; 
 
     void createGeometry();
     void renderQuad(float x, float y, float width, float height, float r, float g, float b, int windowWidth, int windowHeight);

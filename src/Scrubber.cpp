@@ -7,7 +7,7 @@
 Scrubber::Scrubber()
 {
     vp = nullptr;
-    
+
 }
 
 Scrubber::~Scrubber() {
@@ -21,8 +21,8 @@ void Scrubber::init(VideoPlayer* videoPlayer)
 {
     vp = videoPlayer;
 
-    maxZoom = vp->durationSeconds() * vp->fps() / numFramesAtMaxZoom; 
- 
+    maxZoom = vp->durationSeconds() * vp->fps() / numFramesAtMaxZoom;
+
     scrubberY0 = 0.0f;
 
     // Create shader
@@ -157,10 +157,25 @@ void Scrubber::draw(int windowWidth, int windowHeight) {
     glDisable(GL_DEPTH_TEST);
 
     // Calculate scrubber height based on window
-    float scrubberHeight = windowHeight / 8.0f;
+    float markerY = windowHeight / 8;
+    float minScrubberHeight = windowHeight / 20.0f;
+    float maxScrubberHeight = ((float)windowWidth / (float)numFramesAtMaxZoom) * (9.0f / 16.0f);
+    float normalizedZoom = zoomFactor / maxZoom;
+    float growthStart = 0.2f;
+
+    float scrubberHeight;
+    if (normalizedZoom < growthStart) {
+        float logT = std::log(1.0f + normalizedZoom / growthStart * 9.0f) / std::log(10.0f);
+        scrubberHeight = minScrubberHeight * (1.0f + 0.3f * logT);
+    }
+    else {
+        float t = (normalizedZoom - growthStart) / (1.0f - growthStart);
+        t = t * t * (3.0f - 2.0f * t);
+        scrubberHeight = minScrubberHeight * 1.3f + t * (maxScrubberHeight - minScrubberHeight * 1.3f);
+    }
 
     // 1. Draw background - use window dimensions, not video dimensions!
-    renderQuad(0.0f, 0.0f, (float)windowWidth, scrubberHeight,
+    renderQuad(0.0f, markerY, (float)windowWidth, scrubberHeight,
         0.3f, 0.3f, 0.3f, windowWidth, windowHeight);
 
     // Convert timeline to screen X
@@ -170,52 +185,41 @@ void Scrubber::draw(int windowWidth, int windowHeight) {
 
     // 2. Draw cache markers (green)
     if (!vp->frameCache.empty() && vp->durationSeconds() > 0.0) {
-        // Maximum width based on 16:9 aspect of scrubber height
-        const float MAX_WIDTH_BY_ASPECT = scrubberHeight * (16.0f / 9.0f);
-        const float DESIRED_MAX_WIDTH = 218.0f;
-        const float ABSOLUTE_MAX_WIDTH = std::min(DESIRED_MAX_WIDTH, MAX_WIDTH_BY_ASPECT);
-
-        // Scale with zoom
-        float markerWidth = ABSOLUTE_MAX_WIDTH * (zoomFactor / maxZoom);
-        markerWidth = std::min(markerWidth, ABSOLUTE_MAX_WIDTH);
-        markerWidth = std::max(1.0f, markerWidth);
-
+        float maxMarkerWidth = scrubberHeight * (16.0f / 9.0f);
+        float gap = maxMarkerWidth * (1.0f / 8.0f);
+        float markerWidth = (float)windowWidth * zoomFactor / (vp->durationSeconds() * vp->fps());
+        if (markerWidth < 2.0f) markerWidth = 2.0f;
+        if (markerWidth > maxMarkerWidth + gap) markerWidth = maxMarkerWidth + gap;
         float markerHeight = scrubberHeight;
-        float markerY = 0.0f;
+        
 
-        // Get current playhead time to find which frame is selected
         float currentTime = vp->currentCacheTimeSeconds();
-
-        // Find the frame closest to current time
         const CachedFrame* selectedFrame = nullptr;
         float minTimeDiff = std::numeric_limits<float>::max();
 
         for (const auto& frame : vp->frameCache) {
             float frameTime = vp->ptsToSeconds(frame.pts);
             float timeDiff = std::abs(frameTime - currentTime);
-
             if (timeDiff < minTimeDiff) {
                 minTimeDiff = timeDiff;
                 selectedFrame = &frame;
             }
         }
 
-        // Now draw all frames, coloring selected one white
         for (const auto& frame : vp->frameCache) {
             float timelinePos = vp->ptsToSeconds(frame.pts) / vp->durationSeconds();
             float screenX = timelineToScreenX(timelinePos);
 
-            // Choose color: white for selected frame, green for others
             float r, g, b;
-            if (&frame == selectedFrame && minTimeDiff < 0.1f) { // Small threshold
-                r = 1.0f; g = 1.0f; b = 1.0f; // White
+            if (&frame == selectedFrame && minTimeDiff < 0.1f) {
+                r = 1.0f; g = 1.0f; b = 1.0f;
             }
             else {
-                r = 0.0f; g = 1.0f; b = 0.0f; // Green
+                r = 0.0f; g = 1.0f; b = 0.0f;
             }
 
-            renderQuad(screenX - markerWidth / 2, markerY,
-                markerWidth, markerHeight,
+            renderQuad(screenX - markerWidth / 2 + gap / 2, markerY,
+                markerWidth - gap, markerHeight,
                 r, g, b, windowWidth, windowHeight);
         }
     }
@@ -228,7 +232,7 @@ void Scrubber::draw(int windowWidth, int windowHeight) {
 
             if (screenX + 1.0f < 0.0f || screenX - 1.0f > windowWidth) continue;
 
-            renderQuad(screenX - 1.0f, 0.0f, 2.0f, scrubberHeight,
+            renderQuad(screenX - 1.0f, markerY, 2.0f, scrubberHeight,
                 1.0f, 1.0f, 0.0f, windowWidth, windowHeight);
         }
     }
@@ -239,7 +243,7 @@ void Scrubber::draw(int windowWidth, int windowHeight) {
         float screenX = timelineToScreenX(playheadPos);
 
         if (screenX + 1.0f >= 0.0f && screenX - 1.0f <= windowWidth) {
-            renderQuad(screenX - 1.0f, 0.0f, 2.0f, scrubberHeight,
+            renderQuad(screenX - 1.0f, markerY, 2.0f, scrubberHeight,
                 1.0f, 1.0f, 1.0f, windowWidth, windowHeight);
         }
     }

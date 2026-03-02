@@ -43,6 +43,11 @@ public:
         return currentCacheTime;
     }
 
+    double getCacheStartTime() const override {
+        
+        return ptsToSeconds(frameCache.front().pts);
+    }
+
     void onSeekFinished(uint64_t seekToken) override
     {
         finishedSeekToken.store(seekToken, std::memory_order_release);

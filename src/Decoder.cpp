@@ -40,7 +40,8 @@ void Decoder::decodingLoop() {
         }
 
   
-        ensureFrameCache(3);
+        ensureCacheAhead(3);
+        ensureCacheBehind(3);
     }
 }
 
@@ -104,7 +105,7 @@ bool Decoder::open(const std::string& path)
         videoDuration = 0.0;
     }
 
-    currentTime = 0.0;
+    currentDecoderTime = 0.0;
 
     std::cout << "Video FPS: " << videoFPS << "\n";
     std::cout << "Video duration: " << videoDuration << " sec\n";
@@ -123,7 +124,7 @@ bool Decoder::open(const std::string& path)
     }
 
     codecCtx->thread_count = std::thread::hardware_concurrency(); 
-    codecCtx->thread_type = FF_THREAD_FRAME; 
+    codecCtx->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
 
     if (avcodec_open2(codecCtx, codec, nullptr) < 0) {
         std::cerr << "Failed to open codec.\n";
@@ -278,7 +279,7 @@ bool Decoder::decodeOneFrame()
 
             if (pts != AV_NOPTS_VALUE) {
                 double seconds = pts * av_q2d(videoStream->time_base);
-                currentTime = seconds;
+                currentDecoderTime = seconds;
                 //std::cout << " pts: " << pts << " (" << seconds << " sec)\n";
             }
             else {
@@ -350,12 +351,29 @@ bool Decoder::decodeOneFrame()
 
 
 
-bool Decoder::ensureFrameCache(double secondsAhead)
+bool Decoder::ensureCacheAhead(double secondsAhead)
 {
     const double target = cacheState->getCurrentCacheTime() + secondsAhead;
-    while (currentTime < target) {
+    while (currentDecoderTime < target) {
         if (!decodeOneFrame()) return false;
     }
+    return true;
+}
+
+bool Decoder::ensureCacheBehind(double tolerance)
+{
+    
+
+    
+
+    if (cacheState->getCurrentCacheTime() < cacheState->getCacheStartTime() + tolerance) 
+    {
+        std::cout << "--------[Decoder::ensureCacheBehind()] currentCacheTime() : " << cacheState->getCurrentCacheTime() << " getCacheStartTime() : " << cacheState->getCacheStartTime() << " \n";
+        std::cout << "--------[Decoder::ensureCacheBehind()] has triggered (Decoder::decodeLastSegment()) <-<-<-<- \n";
+        std::cout << "--------[Decoder::ensureCacheBehind()] (Decoder::decodeLastSegment()) returns "<< decodeLastSegment(cacheState->getCurrentCacheTime())<<"\n";
+
+    }
+   
     return true;
 }
 
@@ -412,8 +430,8 @@ bool Decoder::seekSeconds(double t)
 void Decoder::sendInfoToPlayer()
 {
     decodeOneFrame();
-    auto keyFrames = getAllKeyFramePts();
-    frameFetcher->setVideoProperties(videoWidth, videoHeight, videoFPS, videoDuration, av_q2d(videoStream->time_base), keyFrames);
+    keyframePts = getAllKeyFramePts();
+    frameFetcher->setVideoProperties(videoWidth, videoHeight, videoFPS, videoDuration, av_q2d(videoStream->time_base), keyframePts);
     
     
 }
@@ -513,7 +531,7 @@ bool Decoder::decodeLastSegment(double target)
     while (safetyCounter++ < MAX_FRAMES) {
         if (!decodeOneFrame()) return false;
 
-        if (currentTime >= stopTime) break;
+        if (currentDecoderTime >= stopTime) break;
     }
 
 

@@ -22,6 +22,8 @@ public:
 
     virtual double getCurrentCacheTime() const = 0;
     //virtual double getTimeBase() const = 0;
+
+    virtual double getCacheStartTime() const = 0;
    
     
     

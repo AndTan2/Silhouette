@@ -95,7 +95,7 @@ bool App::init()
 
     
 
-    dec.open("D:/Silhouette/assets/test5.mkv");
+    dec.open("D:/Silhouette/assets/test8.mkv");
     
     dec.setFrameFetcher(&vp);
     dec.setCacheState(&vp);
@@ -148,7 +148,7 @@ void App::run()
         float mouseY = (float)(height - my);
 
         bool wantPan = input.leftClickDown() && input.spaceDown() && (mouseY > (height / 8));
-        bool wantScrubberPan = input.leftClickDown() && input.spaceDown() && (mouseY >= 0.0f && mouseY <= (height / 8));
+        bool wantScrubberPan = input.leftClickDown() && input.spaceDown() && (mouseY >= 0.0f && mouseY <= (height / 8)); 
         camera.setPanning(wantPan);
 
         if (wantPan) {
@@ -162,13 +162,13 @@ void App::run()
         }
 
         if (input.scrollY() != 0.0f) {
-            
+
             if (mouseY > (height / 8)) {
                 camera.onScroll((float)input.scrollY(), mouseX, mouseY, width, height);
             }
             if (mouseY >= 0.0f && mouseY <= (height / 8))
             {
-               
+
                 scrb.zoom((float)input.scrollY(), (float)mx, (float)width);
             }
         }
