@@ -95,7 +95,7 @@ bool App::init()
 
     
 
-    dec.open("D:/Silhouette/assets/test8.mkv");
+    dec.open("D:/shared_media/Mushoku.Tensei.Jobless.Reincarnation.S02.1080p.AMZN.WEB-DL.DDP2.0.H.264-VARYG/Mushoku.Tensei.Jobless.Reincarnation.S02E02.The.Midnight.Forest.1080p.AMZN.WEB-DL.DDP2.0.H.264-VARYG.mkv");
     
     dec.setFrameFetcher(&vp);
     dec.setCacheState(&vp);
@@ -114,106 +114,99 @@ bool App::init()
 
 void App::run()
 {
-    std::cout << "[App::run]  entering main loop...\n";
 
-    double lastTime = glfwGetTime();
-    double videoFrameTimer = 0.0;
+        std::cout << "[App::run]  entering main loop...\n";
+        double lastTime = glfwGetTime();
+        double videoFrameTimer = 0.0;
 
-    while (!glfwWindowShouldClose(window)) {
+        while (!glfwWindowShouldClose(window)) {
+            glfwGetFramebufferSize(window, &width, &height);
+            glViewport(0, 0, width, height);
+            glClearColor(0.17f, 0.09f, 0.25f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
 
-        glfwGetFramebufferSize(window, &width, &height);
-        glViewport(0, 0, width, height);
-        glClearColor(0.17f, 0.09f, 0.25f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+            auto frameStart = std::chrono::high_resolution_clock::now();
+            double now = glfwGetTime();
+            double dt = now - lastTime;
+            lastTime = now;
 
-        auto frameStart = std::chrono::high_resolution_clock::now();
-        double now = glfwGetTime();
-        double dt = now - lastTime;
-        lastTime = now;
+            input.beginFrame();
+            glfwPollEvents();
+            input.updateFromGlfw(window);
 
-        input.beginFrame();
-        glfwPollEvents();
-        input.updateFromGlfw(window);
+            if (input.spaceDown() && !input.leftClickDown())
+                glfwSetCursor(window, openHandCursor);
+            if (input.spaceDown() && input.leftClickDown())
+                glfwSetCursor(window, closedHandCursor);
+            if (!input.spaceDown())
+                glfwSetCursor(window, nullptr);
 
-        if (input.spaceDown() && !input.leftClickDown())
-            glfwSetCursor(window, openHandCursor);
-        if (input.spaceDown() && input.leftClickDown())
-            glfwSetCursor(window, closedHandCursor);
-        if (!input.spaceDown())
-            glfwSetCursor(window, nullptr);
+            double mx, my;
+            glfwGetCursorPos(window, &mx, &my);
+            float mouseX = (float)mx;
+            float mouseY = (float)(height - my);
 
-        double mx, my;
-        glfwGetCursorPos(window, &mx, &my);
-        float mouseX = (float)mx;
-        float mouseY = (float)(height - my);
+            // Compute scrubber hit area from its actual rendered rect
+            float scrubTop = scrb.scrubberMarkerY;
+            float scrubBottom = scrb.scrubberMarkerY + scrb.scrubberBarHeight;
+            bool mouseOverScrubber = (mouseY >= scrubTop && mouseY <= scrubBottom);
 
-        bool wantPan = input.leftClickDown() && input.spaceDown() && (mouseY > (height / 8));
-        bool wantScrubberPan = input.leftClickDown() && input.spaceDown() && (mouseY >= 0.0f && mouseY <= (height / 8)); 
-        camera.setPanning(wantPan);
+            bool wantPan = input.leftClickDown() && input.spaceDown() && !mouseOverScrubber;
+            bool wantScrubberPan = input.leftClickDown() && input.spaceDown() && mouseOverScrubber;
+            camera.setPanning(wantPan);
 
-        if (wantPan) {
-            camera.addPanDelta((float)input.deltaX(), (float)input.deltaY());
-        }
-
-        
-        if (wantScrubberPan) {
-            float dx = (float)input.deltaX();
-            scrb.addPanDelta(dx);
-        }
-
-        if (input.scrollY() != 0.0f) {
-
-            if (mouseY > (height / 8)) {
-                camera.onScroll((float)input.scrollY(), mouseX, mouseY, width, height);
+            if (wantPan) {
+                camera.addPanDelta((float)input.deltaX(), (float)input.deltaY());
             }
-            if (mouseY >= 0.0f && mouseY <= (height / 8))
-            {
 
-                scrb.zoom((float)input.scrollY(), (float)mx, (float)width);
+            if (wantScrubberPan) {
+                float dx = (float)input.deltaX();
+                scrb.addPanDelta(dx);
             }
-        }
 
-
-        camera.beginFrame(dt);
-        scrb.update(dt);
-
-        if (input.kPressed()) {
-            playState = !playState;
-        }
-
-        
-        static bool wasLeftClickDown = false;
-
-        if (input.leftClickDown() && !input.spaceDown()) {
-            float mouseY = static_cast<float>(height - input.mouseY());
-
-           
-            if (mouseY >= 0.0f && mouseY <= (height / 8.0f)) {
-                float cursorNorm = static_cast<float>(input.mouseX()) / width;
-                float timelineNorm = scrb.interpolatedOffset + cursorNorm / scrb.zoomFactor;
-
-               
-                if (timelineNorm < 0.0f) timelineNorm = 0.0f;
-                if (timelineNorm > 1.0f) timelineNorm = 1.0f;
-
-                double t = timelineNorm * vp.durationSeconds();
-                bool insideCache = vp.isTimeInsideCache(t);
-
-                if (insideCache) {
-                   
-                    vp.seek(t);
+            if (input.scrollY() != 0.0f) {
+                if (!mouseOverScrubber) {
+                    camera.onScroll((float)input.scrollY(), mouseX, mouseY, width, height);
                 }
-                else {
-                    
-                    if (!wasLeftClickDown) {
+                if (mouseOverScrubber) {
+                    scrb.zoom((float)input.scrollY(), (float)mx, (float)width);
+                }
+            }
+
+            camera.beginFrame(dt);
+            scrb.update(dt);
+
+            if (input.kPressed()) {
+                playState = !playState;
+            }
+
+            static bool wasLeftClickDown = false;
+
+            if (input.leftClickDown() && !input.spaceDown()) {
+                float mouseY = static_cast<float>(height - input.mouseY());
+
+                if (mouseOverScrubber) {
+                    float cursorNorm = static_cast<float>(input.mouseX()) / width;
+                    float timelineNorm = scrb.interpolatedOffset + cursorNorm / scrb.zoomFactor;
+
+                    if (timelineNorm < 0.0f) timelineNorm = 0.0f;
+                    if (timelineNorm > 1.0f) timelineNorm = 1.0f;
+
+                    double t = timelineNorm * vp.durationSeconds();
+                    bool insideCache = vp.isTimeInsideCache(t);
+
+                    if (insideCache) {
                         vp.seek(t);
+                    }
+                    else {
+                        if (!wasLeftClickDown) {
+                            vp.seek(t);
+                        }
                     }
                 }
             }
-        }
 
-        
-        wasLeftClickDown = input.leftClickDown();
+            wasLeftClickDown = input.leftClickDown();
 
         vp.update();
 

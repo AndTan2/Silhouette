@@ -40,8 +40,13 @@ void Decoder::decodingLoop() {
         }
 
   
-        ensureCacheAhead(3);
-        ensureCacheBehind(3);
+        bool aheadDone = ensureCacheAhead(3);
+        bool behindDone = ensureCacheBehind(3);
+
+        if (aheadDone && behindDone) {
+            // cache is satisfied, don't spin
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        }
     }
 }
 

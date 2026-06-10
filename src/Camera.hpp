@@ -13,6 +13,8 @@ public:
 	void onScroll(float scrollY, float mouseX, float mouseY, int screenWidth, int screenHeight);
 	void computeImageRect(int screenWidth, int screenHeight, int imageWidth, int imageHeight, float& x0, float& x1, float& y0, float& y1) const;
 
+
+
 private:
 	float _zoom = 1.0f;
 	float _panX = 0.0f;

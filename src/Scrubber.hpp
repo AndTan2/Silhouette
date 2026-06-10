@@ -19,6 +19,9 @@ public:
     float interpolatedOffset = 0.0f;
     float zoomFactor = 1.0f;
 
+    float scrubberMarkerY = 0.0f;    // top of the scrubber bar
+    float scrubberBarHeight = 0.0f;  // its current height
+
 private:
     VideoPlayer* vp = nullptr;
     float scrubberY0 = 0.0f;

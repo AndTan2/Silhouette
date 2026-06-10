@@ -174,6 +174,9 @@ void Scrubber::draw(int windowWidth, int windowHeight) {
         scrubberHeight = minScrubberHeight * 1.3f + t * (maxScrubberHeight - minScrubberHeight * 1.3f);
     }
 
+    scrubberMarkerY = markerY;
+    scrubberBarHeight = scrubberHeight;
+
     // 1. Draw background - use window dimensions, not video dimensions!
     renderQuad(0.0f, markerY, (float)windowWidth, scrubberHeight,
         0.3f, 0.3f, 0.3f, windowWidth, windowHeight);
@@ -225,7 +228,7 @@ void Scrubber::draw(int windowWidth, int windowHeight) {
     }
 
     // 3. Draw keyframe markers (yellow)
-    if (!vp->KeyFrames.empty() && vp->durationSeconds() > 0.0) {
+  /*  if (!vp->KeyFrames.empty() && vp->durationSeconds() > 0.0) {
         for (auto pts : vp->KeyFrames) {
             float timelinePos = vp->ptsToSeconds(pts) / vp->durationSeconds();
             float screenX = timelineToScreenX(timelinePos);
@@ -235,7 +238,7 @@ void Scrubber::draw(int windowWidth, int windowHeight) {
             renderQuad(screenX - 1.0f, markerY, 2.0f, scrubberHeight,
                 1.0f, 1.0f, 0.0f, windowWidth, windowHeight);
         }
-    }
+    }*/
 
     // 4. Draw playhead (white)
     if (vp->durationSeconds() > 0.0) {
